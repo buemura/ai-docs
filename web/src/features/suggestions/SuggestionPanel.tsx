@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useModels } from '../ai/ModelProvider'
 import { countByStatus, getHunks } from './diff'
 import { SplitDiffView } from './SplitDiffView'
 import { useSuggestion } from './SuggestionProvider'
@@ -38,13 +39,16 @@ export function SuggestionPanel() {
 }
 
 function SuggestionHeader({ suggestion }: { suggestion: Suggestion }) {
+  const { models } = useModels()
+  const modelLabel =
+    models.find((model) => model.id === suggestion.model)?.label ?? suggestion.model
   const scope = suggestion.scope.kind === 'selection' ? 'Selection' : 'Whole document'
   const refinement =
     suggestion.history.length > 0 ? ` · refinement ${suggestion.history.length}` : ''
   return (
     <header className="flex flex-col gap-1">
       <p className="text-xs font-medium uppercase tracking-wide text-slate-500 dark:text-slate-400">
-        {scope} · {suggestion.model}
+        {scope} · {modelLabel}
         {refinement}
       </p>
       <h2 className="text-base font-semibold">“{suggestion.instruction}”</h2>

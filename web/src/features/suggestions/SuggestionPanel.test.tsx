@@ -98,6 +98,7 @@ describe('SuggestionPanel', () => {
     const onResolved = renderPanel('one\ntwo\nthree\n')
     await startSuggestion(user)
     expect(await screen.findByText('2 of 2 changes pending')).toBeInTheDocument()
+    expect(screen.getByText(/Whole document · Claude Sonnet 5\.5/)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Accept change 1' }))
     expect(screen.getByText('1 of 2 changes pending')).toBeInTheDocument()
