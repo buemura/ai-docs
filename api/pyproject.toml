@@ -1,0 +1,29 @@
+[project]
+name = "ai-docs-backend"
+version = "0.1.0"
+description = "AI Docs API"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi[standard]>=0.161.1",
+    "pydantic-settings>=2.16.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "ruff>=0.17.2",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "ASYNC"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
