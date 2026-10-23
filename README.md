@@ -15,6 +15,7 @@ every change. Every accepted AI change is recorded in a version history.
 - **Quick actions** under the Ask AI bar for the most common presets.
 - **Model switcher**: Claude Sonnet 5.5 (default) or Claude Haiku 5.5, switchable at any time.
 - Autosave to `localStorage`, **Export** as `.md`, and a light theme by default with a dark mode toggle.
+- **Guided tour** on first visit that spotlights the main UI. Replay it anytime from the **?** button in the header.
 
 ## Requirements
 
@@ -96,6 +97,7 @@ Git hooks: pre-commit runs lint-staged (ESLint + Prettier) and ruff; pre-push ru
 | `/` in the editor                 | Slash commands                                        |
 | `⌘↵` / `Ctrl ↵` in the Ask AI bar | Send the instruction                                  |
 | `↑` `↓` `↵` `Esc`                 | Navigate, run, or close in the palette and slash menu |
+| `←` `→` `Esc` during the tour     | Previous step, next step, or skip the tour            |
 
 ## Architecture
 

@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 
-export function useCommandPaletteShortcut(onToggle: () => void) {
+export function useCommandPaletteShortcut(onToggle: () => void, enabled = true) {
   useEffect(() => {
+    if (!enabled) return
     const handler = (event: KeyboardEvent) => {
       if (
         (event.metaKey || event.ctrlKey) &&
@@ -16,5 +17,5 @@ export function useCommandPaletteShortcut(onToggle: () => void) {
     // Capture phase so CodeMirror and inputs can't swallow the shortcut.
     window.addEventListener('keydown', handler, true)
     return () => window.removeEventListener('keydown', handler, true)
-  }, [onToggle])
+  }, [onToggle, enabled])
 }
