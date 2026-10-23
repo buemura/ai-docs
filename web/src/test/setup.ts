@@ -1,10 +1,19 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
-import { afterEach } from 'vitest'
+import { afterEach, beforeEach, vi } from 'vitest'
+
+// No test may hit the network. Tests that need the API call mockApi() from ./sse.
+beforeEach(() => {
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(() => Promise.reject(new TypeError('fetch is not mocked in this test'))),
+  )
+})
 
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  vi.unstubAllGlobals()
 })
 
 // CodeMirror measures text with Range rects, which jsdom does not implement.
