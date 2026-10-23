@@ -6,12 +6,19 @@ import { MarkdownEditor } from './features/editor/MarkdownEditor'
 import { AppHeader } from './features/layout/AppHeader'
 import { Tabs, type TabId } from './features/layout/Tabs'
 import { MarkdownPreview } from './features/preview/MarkdownPreview'
+import { AskAiBar } from './features/suggestions/AskAiBar'
+import { countByStatus } from './features/suggestions/diff'
+import { SuggestionPanel } from './features/suggestions/SuggestionPanel'
+import { SuggestionProvider, useSuggestion } from './features/suggestions/SuggestionProvider'
 import { ThemeProvider, useTheme } from './features/theme/ThemeProvider'
 
-function AppShell() {
+function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(id: TabId): void }) {
   const { content, setContent, setSelection } = useDocument()
   const { theme } = useTheme()
-  const [activeTab, setActiveTab] = useState<TabId>('editor')
+  const { suggestion } = useSuggestion()
+
+  const pending = suggestion ? countByStatus(suggestion.segments).pending : 0
+  const reviewBadge = suggestion?.status === 'streaming' ? '…' : pending > 0 ? pending : null
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
@@ -21,26 +28,51 @@ function AppShell() {
       <main className="min-h-0 flex-1">
         <Tabs
           active={activeTab}
-          onChange={setActiveTab}
+          onChange={onTabChange}
+          badges={
+            reviewBadge === null
+              ? undefined
+              : {
+                  review: (
+                    <span className="rounded-full bg-sky-600 px-1.5 text-xs leading-5 text-white">
+                      {reviewBadge}
+                    </span>
+                  ),
+                }
+          }
           panels={{
             editor: (
-              <MarkdownEditor
-                value={content}
-                onChange={setContent}
-                onSelectionChange={setSelection}
-                dark={theme === 'dark'}
-              />
+              <div className="flex h-full flex-col">
+                <AskAiBar />
+                <div className="min-h-0 flex-1">
+                  <MarkdownEditor
+                    value={content}
+                    onChange={setContent}
+                    onSelectionChange={setSelection}
+                    dark={theme === 'dark'}
+                  />
+                </div>
+              </div>
             ),
             preview: <MarkdownPreview content={content} />,
             review: (
-              <p className="p-6 text-sm text-slate-500 dark:text-slate-400">
-                AI suggestions will appear here.
-              </p>
+              <div className="h-full overflow-y-auto">
+                <SuggestionPanel />
+              </div>
             ),
           }}
         />
       </main>
     </div>
+  )
+}
+
+function AppShell() {
+  const [activeTab, setActiveTab] = useState<TabId>('editor')
+  return (
+    <SuggestionProvider onStart={() => setActiveTab('review')}>
+      <Workspace activeTab={activeTab} onTabChange={setActiveTab} />
+    </SuggestionProvider>
   )
 }
 

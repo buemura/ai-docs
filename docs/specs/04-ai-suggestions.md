@@ -3480,7 +3480,7 @@ git commit -m "feat(frontend): add AI Review suggestion panel"
 
 `web/src/App.suggestions.test.tsx`:
 ```tsx
-import { screen, render, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import App from './App'
@@ -3518,7 +3518,8 @@ describe('App AI suggestions', () => {
     expect(screen.getByText('No active suggestion.')).toBeInTheDocument()
 
     await user.click(screen.getByRole('tab', { name: 'Preview' }))
-    expect(screen.getByText('Hello there')).toBeVisible()
+    const preview = screen.getByRole('article', { name: 'Markdown preview' })
+    expect(within(preview).getByText('Hello there')).toBeVisible()
   })
 })
 ```
