@@ -13,6 +13,7 @@ import { AiReviewTab } from './features/history/AiReviewTab'
 import { SuggestionBridge } from './features/history/SuggestionBridge'
 import { VersionsProvider } from './features/history/VersionsProvider'
 import { AppHeader } from './features/layout/AppHeader'
+import { ErrorBoundary } from './features/layout/ErrorBoundary'
 import { Tabs, type TabId } from './features/layout/Tabs'
 import { MarkdownPreview } from './features/preview/MarkdownPreview'
 import { AskAiBar } from './features/suggestions/AskAiBar'
@@ -116,12 +117,14 @@ function AppShell() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <DocumentProvider>
-        <ModelProvider>
-          <AppShell />
-        </ModelProvider>
-      </DocumentProvider>
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <DocumentProvider>
+          <ModelProvider>
+            <AppShell />
+          </ModelProvider>
+        </DocumentProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   )
 }
