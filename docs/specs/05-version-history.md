@@ -1375,7 +1375,7 @@ git commit -m "feat(history): add version history section with snapshots"
 `web/src/App.history.test.tsx`:
 
 ```tsx
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -1427,7 +1427,8 @@ describe('App version history', () => {
     )
     render(<App />)
     await userEvent.click(screen.getByRole('tab', { name: /AI Review/ }))
-    expect(await screen.findByText('Claude Haiku 5.5')).toBeInTheDocument()
+    const timeline = await screen.findByRole('list', { name: 'Versions' })
+    expect(within(timeline).getByText('Claude Haiku 5.5')).toBeInTheDocument()
   })
 })
 ```

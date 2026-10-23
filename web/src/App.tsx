@@ -1,15 +1,17 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ModelProvider } from './features/ai/ModelProvider'
 import { ModelSelect } from './features/ai/ModelSelect'
 import { DocumentProvider, useDocument } from './features/document/DocumentProvider'
 import { MarkdownEditor } from './features/editor/MarkdownEditor'
+import { AiReviewTab } from './features/history/AiReviewTab'
+import { SuggestionBridge } from './features/history/SuggestionBridge'
+import { VersionsProvider } from './features/history/VersionsProvider'
 import { AppHeader } from './features/layout/AppHeader'
 import { Tabs, type TabId } from './features/layout/Tabs'
 import { MarkdownPreview } from './features/preview/MarkdownPreview'
 import { AskAiBar } from './features/suggestions/AskAiBar'
 import { countByStatus } from './features/suggestions/diff'
-import { SuggestionPanel } from './features/suggestions/SuggestionPanel'
-import { SuggestionProvider, useSuggestion } from './features/suggestions/SuggestionProvider'
+import { useSuggestion } from './features/suggestions/SuggestionProvider'
 import { ThemeProvider, useTheme } from './features/theme/ThemeProvider'
 
 function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(id: TabId): void }) {
@@ -57,7 +59,7 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
             preview: <MarkdownPreview content={content} />,
             review: (
               <div className="h-full overflow-y-auto">
-                <SuggestionPanel />
+                <AiReviewTab />
               </div>
             ),
           }}
@@ -69,10 +71,14 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
 
 function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>('editor')
+  const openReview = useCallback(() => setActiveTab('review'), [])
+
   return (
-    <SuggestionProvider onStart={() => setActiveTab('review')}>
-      <Workspace activeTab={activeTab} onTabChange={setActiveTab} />
-    </SuggestionProvider>
+    <VersionsProvider>
+      <SuggestionBridge onStart={openReview}>
+        <Workspace activeTab={activeTab} onTabChange={setActiveTab} />
+      </SuggestionBridge>
+    </VersionsProvider>
   )
 }
 
