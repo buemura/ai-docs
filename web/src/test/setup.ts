@@ -41,3 +41,16 @@ if (!Range.prototype.getClientRects) {
       [Symbol.iterator]: [][Symbol.iterator],
     }) as unknown as DOMRectList
 }
+
+// cmdk measures its list with ResizeObserver and scrolls the active item into view;
+// jsdom implements neither.
+if (typeof globalThis.ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver
+}
+if (typeof Element.prototype.scrollIntoView !== 'function') {
+  Element.prototype.scrollIntoView = function scrollIntoView() {}
+}
