@@ -44,11 +44,11 @@ describe('App', () => {
     })
   })
 
-  it('shows the AI Review placeholder', async () => {
+  it('shows the empty AI Review panel', async () => {
     const user = userEvent.setup()
     render(<App />)
     await user.click(screen.getByRole('tab', { name: 'AI Review' }))
-    expect(screen.getByText('AI suggestions will appear here.')).toBeVisible()
+    expect(screen.getByText('No active suggestion.')).toBeVisible()
   })
 
   it('toggles dark mode for the page and the editor', async () => {
