@@ -42,6 +42,7 @@ export function Tabs({ active, onChange, panels, badges }: TabsProps) {
       <div
         role="tablist"
         aria-label="Document views"
+        data-tour="tabs"
         className="flex gap-1 border-b border-slate-200 px-4 dark:border-slate-800"
       >
         {TABS.map((tab, index) => {

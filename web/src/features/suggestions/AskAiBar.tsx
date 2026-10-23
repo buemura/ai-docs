@@ -50,7 +50,12 @@ export function AskAiBar({ focusRequested = false, onFocusHandled, quickActions 
 
   return (
     <div className="flex flex-col gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-900">
-      <form aria-label="Ask AI" onSubmit={handleSubmit} className="flex items-center gap-2">
+      <form
+        aria-label="Ask AI"
+        data-tour="ask-ai"
+        onSubmit={handleSubmit}
+        className="flex items-center gap-2"
+      >
         <span
           aria-live="polite"
           className="shrink-0 rounded bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-700 dark:bg-slate-700 dark:text-slate-200"

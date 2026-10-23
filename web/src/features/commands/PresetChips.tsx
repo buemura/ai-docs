@@ -13,7 +13,12 @@ export function PresetChips({
   onPick(preset: AiPreset): void
 }) {
   return (
-    <div role="group" aria-label="Quick AI actions" className="flex flex-wrap gap-2">
+    <div
+      role="group"
+      aria-label="Quick AI actions"
+      data-tour="quick-actions"
+      className="flex flex-wrap gap-2"
+    >
       {CHIPS.map((preset) => (
         <button
           key={preset.id}

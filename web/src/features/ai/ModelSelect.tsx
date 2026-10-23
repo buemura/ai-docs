@@ -8,7 +8,13 @@ export function ModelSelect() {
 
   if (status !== 'ready') {
     return (
-      <select aria-label="AI model" disabled className={selectClass} value="">
+      <select
+        aria-label="AI model"
+        data-tour="model-select"
+        disabled
+        className={selectClass}
+        value=""
+      >
         <option value="">{status === 'loading' ? 'Loading models…' : 'AI unavailable'}</option>
       </select>
     )
@@ -17,6 +23,7 @@ export function ModelSelect() {
   return (
     <select
       aria-label="AI model"
+      data-tour="model-select"
       className={selectClass}
       value={selectedModel ?? ''}
       onChange={(event) => setSelectedModel(event.target.value)}

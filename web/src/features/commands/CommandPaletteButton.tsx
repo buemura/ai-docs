@@ -9,6 +9,7 @@ export function CommandPaletteButton({ onClick }: { onClick(): void }) {
       type="button"
       onClick={onClick}
       aria-label="Open command palette"
+      data-tour="commands"
       className="flex items-center gap-2 rounded-md border border-slate-300 px-2.5 py-1 text-sm text-slate-700 hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-sky-500 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
     >
       <span>Commands</span>

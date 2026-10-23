@@ -59,9 +59,9 @@ Without an API key in `api/.env` the editor still works. AI requests fail with a
 
 ### Frontend (`web/src/features/`)
 
-The code is organized by feature. Each feature has React context + `useReducer` providers; there is no external state library. Reducers and helpers (`suggestionReducer.ts`, `versionsReducer.ts`, `diff.ts`, `locateRegion.ts`, `normalize.ts`) are pure and unit-tested. Keep logic there rather than in components.
+The code is organized by feature. Each feature has React context + `useReducer` providers; there is no external state library. Reducers and helpers (`suggestionReducer.ts`, `versionsReducer.ts`, `diff.ts`, `locateRegion.ts`, `normalize.ts`, `tourReducer.ts`, `placement.ts`) are pure and unit-tested. Keep logic there rather than in components.
 
-Provider nesting (`App.tsx`): `ErrorBoundary → ThemeProvider → DocumentProvider → ModelProvider → VersionsProvider → SuggestionBridge (wraps SuggestionProvider) → Workspace`. `SuggestionBridge` connects suggestions to history: it turns `onResolved` into version records and opens the AI Review tab on start.
+Provider nesting (`App.tsx`): `ErrorBoundary → ThemeProvider → DocumentProvider → ModelProvider → TourProvider → VersionsProvider → SuggestionBridge (wraps SuggestionProvider) → Workspace`. `TourProvider` (`features/onboarding/`) runs the first-visit tour: it makes the app `inert` while the tour is open, and the tour points at UI through `data-tour` attributes. `SuggestionBridge` connects suggestions to history: it turns `onResolved` into version records and opens the AI Review tab on start.
 
 Suggestion lifecycle (`suggestions/SuggestionProvider.tsx`):
 1. Trigger with an instruction and a target (`auto` means the selection if non-empty, else the document). The provider records `baseText` and the scope.

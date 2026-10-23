@@ -44,8 +44,9 @@ Backend: Python 3.13, uv, FastAPI (`fastapi[standard]`), Pydantic v2 + `pydantic
 | 4 | [04-ai-suggestions.md](04-ai-suggestions.md) | Model dropdown, "Ask AI" bar, streaming proposal, split diff review with per-hunk accept/reject, refine, stale detection. |
 | 5 | [05-version-history.md](05-version-history.md) | Version timeline in the AI Review tab, diff between versions, restore, manual snapshots. |
 | 6 | [06-commands-and-polish.md](06-commands-and-polish.md) | AI presets, command palette (Cmd/Ctrl+K), slash commands in the editor, keyboard shortcuts, README. |
+| 7 | [07-onboarding-tour.md](07-onboarding-tour.md) | First-visit guided tour (spotlight coachmarks on the real UI), replayable from a "?" header button. |
 
-Each phase ends with working, tested software. Phases 2 and 3 are independent of each other; 4 needs 2 and 3; 5 needs 4; 6 needs 4 (and uses 5's tab layout).
+Each phase ends with working, tested software. Phases 2 and 3 are independent of each other; 4 needs 2 and 3; 5 needs 4; 6 needs 4 (and uses 5's tab layout); 7 needs 6.
 
 ## Architecture
 
@@ -232,6 +233,7 @@ export const env: { VITE_API_BASE_URL: string } // Zod-validated import.meta.env
 | `ai-docs:theme` | `"light" \| "dark"` | 2 |
 | `ai-docs:model` | `string` | 4 |
 | `ai-docs:versions` | `Version[]` | 5 |
+| `ai-docs:onboarding` | `{ seenVersion: number }` | 7 |
 
 ### File map
 
@@ -255,6 +257,8 @@ web/src/
   features/history/     types.ts, versionsReducer.ts, VersionsProvider.tsx,
                         VersionTimeline.tsx, VersionDetail.tsx, AiReviewTab.tsx             (5)
   features/commands/    presets.ts, CommandPalette.tsx, slashCommands.ts                    (6)
+  features/onboarding/  tourSteps.ts, tourReducer.ts, placement.ts, tourStorage.ts,
+                        useAnchorRect.ts, TourOverlay.tsx, TourProvider.tsx, TourButton.tsx (7)
 ```
 Tests sit next to their source as `*.test.ts(x)`.
 
@@ -401,16 +405,19 @@ export const AI_PRESETS: AiPreset[]
 </ThemeProvider>
 
 // AppShell
+<TourProvider onStart={() => setActiveTab('editor')}>  {/* phase 7; app content is inert while the tour runs */}
 <VersionsProvider>                        {/* phase 5 */}
   <SuggestionBridge onStart={() => setActiveTab('review')}>  {/* phase 5; phase 4 uses SuggestionProvider directly */}
     <Workspace activeTab={activeTab} onTabChange={setActiveTab} />  {/* header, tabs, panels; phase 6 adds palette + slash commands here */}
   </SuggestionBridge>
 </VersionsProvider>
+</TourProvider>
 ```
 
 ## UX notes
 
-- Header: app name, ModelSelect, ThemeToggle, ExportButton (phase 6 adds a "⌘K" hint button).
+- Header: app name, ModelSelect, ThemeToggle, ExportButton (phase 6 adds a "⌘K" hint button; phase 7 adds a "?" button that replays the onboarding tour).
+- Onboarding (phase 7): on first visit a passive tour spotlights the editor, Ask AI bar, quick actions, model select, tabs, command palette and export, one short card each. Skip/Done persists; it never edits the document or triggers AI.
 - Editor tab: AskAiBar above the editor (instruction input + "Suggest" button; label shows "Selection" or "Whole document" depending on the current selection).
 - Starting a suggestion switches to the AI Review tab (via `onStart`). The Review tab badge shows the number of pending hunks.
 - AI Review tab: top section = active suggestion (streaming text with Stop, or split diff with per-hunk Accept/Reject, Accept all / Reject all, Refine input, Discard; stale banner). Below = version history (phase 5).

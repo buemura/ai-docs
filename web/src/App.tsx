@@ -15,6 +15,7 @@ import { VersionsProvider } from './features/history/VersionsProvider'
 import { AppHeader } from './features/layout/AppHeader'
 import { ErrorBoundary } from './features/layout/ErrorBoundary'
 import { Tabs, type TabId } from './features/layout/Tabs'
+import { TourProvider, useTour } from './features/onboarding/TourProvider'
 import { MarkdownPreview } from './features/preview/MarkdownPreview'
 import { AskAiBar } from './features/suggestions/AskAiBar'
 import { countByStatus } from './features/suggestions/diff'
@@ -28,9 +29,10 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
   const { canRun, runPreset, runPresetAt } = useRunPreset()
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [askAiFocusRequested, setAskAiFocusRequested] = useState(false)
+  const { isActive: touring, start: startTour } = useTour()
 
   const togglePalette = useCallback(() => setPaletteOpen((open) => !open), [])
-  useCommandPaletteShortcut(togglePalette)
+  useCommandPaletteShortcut(togglePalette, !touring)
 
   const focusAskAi = useCallback(() => {
     onTabChange('editor')
@@ -46,7 +48,7 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <AppHeader onOpenCommands={() => setPaletteOpen(true)}>
+      <AppHeader onOpenCommands={() => setPaletteOpen(true)} onStartTour={startTour}>
         <ModelSelect />
       </AppHeader>
       <main className="min-h-0 flex-1">
@@ -72,7 +74,7 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
                   onFocusHandled={clearAskAiFocus}
                   quickActions={<PresetChips disabled={!canRun} onPick={runPreset} />}
                 />
-                <div className="min-h-0 flex-1">
+                <div className="min-h-0 flex-1" data-tour="editor">
                   <MarkdownEditor
                     value={content}
                     onChange={setContent}
@@ -105,13 +107,16 @@ function Workspace({ activeTab, onTabChange }: { activeTab: TabId; onTabChange(i
 function AppShell() {
   const [activeTab, setActiveTab] = useState<TabId>('editor')
   const openReview = useCallback(() => setActiveTab('review'), [])
+  const openEditor = useCallback(() => setActiveTab('editor'), [])
 
   return (
-    <VersionsProvider>
-      <SuggestionBridge onStart={openReview}>
-        <Workspace activeTab={activeTab} onTabChange={setActiveTab} />
-      </SuggestionBridge>
-    </VersionsProvider>
+    <TourProvider onStart={openEditor}>
+      <VersionsProvider>
+        <SuggestionBridge onStart={openReview}>
+          <Workspace activeTab={activeTab} onTabChange={setActiveTab} />
+        </SuggestionBridge>
+      </VersionsProvider>
+    </TourProvider>
   )
 }
 

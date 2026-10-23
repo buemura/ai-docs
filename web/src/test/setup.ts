@@ -1,9 +1,13 @@
 import '@testing-library/jest-dom/vitest'
 import { cleanup } from '@testing-library/react'
 import { afterEach, beforeEach, vi } from 'vitest'
+import { ONBOARDING_STORAGE_KEY } from '../features/onboarding/tourStorage'
+import { TOUR_VERSION } from '../features/onboarding/tourSteps'
 
 // No test may hit the network. Tests that need the API call mockApi() from ./sse.
 beforeEach(() => {
+  // Every suite starts as a returning user; onboarding tests remove this key to see the tour.
+  localStorage.setItem(ONBOARDING_STORAGE_KEY, JSON.stringify({ seenVersion: TOUR_VERSION }))
   vi.stubGlobal(
     'fetch',
     vi.fn(() => Promise.reject(new TypeError('fetch is not mocked in this test'))),
