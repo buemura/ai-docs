@@ -26,3 +26,6 @@ __pycache__/
 
 # Logs
 *.log
+
+# Local browser automation artifacts
+.playwright-mcp/

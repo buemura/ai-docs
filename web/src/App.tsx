@@ -1,7 +1,51 @@
+import { useState } from 'react'
+import { DocumentProvider, useDocument } from './features/document/DocumentProvider'
+import { MarkdownEditor } from './features/editor/MarkdownEditor'
+import { AppHeader } from './features/layout/AppHeader'
+import { Tabs, type TabId } from './features/layout/Tabs'
+import { MarkdownPreview } from './features/preview/MarkdownPreview'
+import { ThemeProvider, useTheme } from './features/theme/ThemeProvider'
+
+function AppShell() {
+  const { content, setContent, setSelection } = useDocument()
+  const { theme } = useTheme()
+  const [activeTab, setActiveTab] = useState<TabId>('editor')
+
+  return (
+    <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+      <AppHeader />
+      <main className="min-h-0 flex-1">
+        <Tabs
+          active={activeTab}
+          onChange={setActiveTab}
+          panels={{
+            editor: (
+              <MarkdownEditor
+                value={content}
+                onChange={setContent}
+                onSelectionChange={setSelection}
+                dark={theme === 'dark'}
+              />
+            ),
+            preview: <MarkdownPreview content={content} />,
+            review: (
+              <p className="p-6 text-sm text-slate-500 dark:text-slate-400">
+                AI suggestions will appear here.
+              </p>
+            ),
+          }}
+        />
+      </main>
+    </div>
+  )
+}
+
 export default function App() {
   return (
-    <main className="min-h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <h1 className="p-6 text-2xl font-semibold">AI Docs</h1>
-    </main>
+    <ThemeProvider>
+      <DocumentProvider>
+        <AppShell />
+      </DocumentProvider>
+    </ThemeProvider>
   )
 }
