@@ -12,7 +12,7 @@ The AI never edits the document directly — every change passes through the use
 
 | Topic | Decision |
 |---|---|
-| Repo layout | Monorepo, no workspace tooling: `frontend/` (pnpm) and `backend/` (uv). Root `package.json` only hosts Husky. |
+| Repo layout | Monorepo, no workspace tooling: `web/` (pnpm) and `api/` (uv). Root `package.json` only hosts Husky. |
 | Editor | CodeMirror 6, raw Markdown source, thin React wrapper (no `@uiw/react-codemirror`). |
 | Preview | `react-markdown` + `remark-gfm`, styled with `@tailwindcss/typography`. |
 | Diff | `diff` (jsdiff) — line diff to build hunks, word diff for intra-line highlight. |
@@ -236,7 +236,7 @@ export const env: { VITE_API_BASE_URL: string } // Zod-validated import.meta.env
 ### File map
 
 ```
-frontend/src/
+web/src/
   main.tsx, App.tsx, index.css, env.ts
   test/setup.ts                                   # jest-dom, localStorage reset
   lib/storage.ts        loadJson, saveJson
@@ -421,5 +421,5 @@ export const AI_PRESETS: AiPreset[]
 
 - Commit after every task with Conventional Commits (`feat:`, `test:`, `chore:`…).
 - TDD: failing test → minimal implementation → passing test → commit.
-- Frontend checks: `pnpm --dir frontend lint`, `pnpm --dir frontend typecheck`, `pnpm --dir frontend test`. Backend checks: `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- Frontend checks: `pnpm --dir web lint`, `pnpm --dir web typecheck`, `pnpm --dir web test`. Backend checks: `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - No real network calls in tests. Backend tests use a `FakeProvider`; frontend tests mock `fetch`.

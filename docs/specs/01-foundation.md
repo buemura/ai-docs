@@ -4,7 +4,7 @@
 
 **Goal:** Stand up the monorepo with both apps: a React 19 + Vite frontend and a FastAPI backend. Linting, formatting, tests and git hooks all work, the backend serves `GET /api/health`, and the Vite dev server proxies `/api` to the backend.
 
-**Architecture:** One git repo with no workspace tooling. `frontend/` is a pnpm project scaffolded by `create-vite` (react-ts), with Tailwind v4, Vitest and a Zod-validated env module. `backend/` is a uv project with an `app` package (`create_app()` factory, `Settings` from `pydantic-settings`, routers under `/api`). A root `package.json` exists only to host Husky, whose hooks call into both apps.
+**Architecture:** One git repo with no workspace tooling. `web/` is a pnpm project scaffolded by `create-vite` (react-ts), with Tailwind v4, Vitest and a Zod-validated env module. `api/` is a uv project with an `app` package (`create_app()` factory, `Settings` from `pydantic-settings`, routers under `/api`). A root `package.json` exists only to host Husky, whose hooks call into both apps.
 
 **Tech Stack:** Node 24, pnpm, React 19, Vite, TypeScript (strict), Tailwind CSS v4 (`@tailwindcss/vite`, `@tailwindcss/typography`), Zod v4, Vitest + Testing Library + jsdom, ESLint 9 (flat config) + `eslint-config-prettier`, Prettier, Husky + lint-staged; Python 3.13, uv, FastAPI (`fastapi[standard]`), `pydantic-settings`, pytest + `pytest-asyncio`, ruff.
 
@@ -13,13 +13,13 @@
 ## Global Constraints
 
 - Node 24 (`.nvmrc` = `24`), pnpm ≥ 10, Python 3.13, uv.
-- Repo layout: `frontend/` (pnpm) and `backend/` (uv), with no workspace tooling. The root `package.json` only hosts Husky.
+- Repo layout: `web/` (pnpm) and `api/` (uv), with no workspace tooling. The root `package.json` only hosts Husky.
 - React 19, TypeScript `strict: true`.
 - Tailwind CSS v4 via `@tailwindcss/vite`; class-based dark variant: `@custom-variant dark (&:where(.dark, .dark *));`.
 - Zod v4. `src/env.ts` exports `env: { VITE_API_BASE_URL: string }`, default `"/api"`.
 - Backend config var `CORS_ORIGINS`: JSON list of str, default `["http://localhost:5173"]`.
 - `GET /api/health` → `200 {"status": "ok"}`.
-- Frontend checks: `pnpm --dir frontend lint`, `pnpm --dir frontend typecheck`, `pnpm --dir frontend test`. Backend checks: `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- Frontend checks: `pnpm --dir web lint`, `pnpm --dir web typecheck`, `pnpm --dir web test`. Backend checks: `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 - Code style: Prettier with no semicolons, single quotes, trailing commas, width 100 (matches the code in the overview).
 - No real network calls in tests.
 - Commit after every task using Conventional Commits.
@@ -36,7 +36,7 @@ pnpm-lock.yaml
 .husky/pre-commit          # lint-staged (frontend) + ruff (backend)
 .husky/pre-push            # typecheck + tests (frontend), pytest (backend)
 README.md                  # how to install, run, check
-frontend/
+web/
   package.json             # scripts: dev/build/lint/format/format:check/typecheck/test; lint-staged config
   .prettierrc.json, .prettierignore
   eslint.config.js         # generated + eslint-config-prettier
@@ -52,7 +52,7 @@ frontend/
     env.test.ts
     vite-env.d.ts          # ImportMetaEnv typing
     test/setup.ts          # jest-dom matchers, cleanup, localStorage.clear
-backend/
+api/
   pyproject.toml           # deps + ruff + pytest config
   .python-version          # 3.13
   .env.example
@@ -154,49 +154,49 @@ git commit -m "chore: bootstrap repository"
 ### Task 2: Frontend scaffold with Vitest and app shell
 
 **Files:**
-- Create (via scaffold): `frontend/` from `create-vite` `react-ts` template
-- Delete: `frontend/src/App.css`, `frontend/src/assets/` (whole dir), `frontend/public/vite.svg`, `frontend/README.md`, `frontend/.gitignore`
-- Replace: `frontend/src/App.tsx`, `frontend/src/main.tsx`, `frontend/src/index.css`, `frontend/index.html`, `frontend/vite.config.ts`
-- Create: `frontend/src/test/setup.ts`, `frontend/src/App.test.tsx`
-- Modify: `frontend/package.json` (scripts)
+- Create (via scaffold): `web/` from `create-vite` `react-ts` template
+- Delete: `web/src/App.css`, `web/src/assets/` (whole dir), `web/public/vite.svg`, `web/README.md`, `web/.gitignore`
+- Replace: `web/src/App.tsx`, `web/src/main.tsx`, `web/src/index.css`, `web/index.html`, `web/vite.config.ts`
+- Create: `web/src/test/setup.ts`, `web/src/App.test.tsx`
+- Modify: `web/package.json` (scripts)
 
 **Interfaces:**
 - Consumes: Task 1 repo.
-- Produces: `frontend/src/App.tsx` default export `App` (phase 2 replaces its body). `frontend/src/test/setup.ts` (jest-dom matchers on Vitest `expect`, `cleanup()` and `localStorage.clear()` after each test). `pnpm --dir frontend test` runs Vitest once.
+- Produces: `web/src/App.tsx` default export `App` (phase 2 replaces its body). `web/src/test/setup.ts` (jest-dom matchers on Vitest `expect`, `cleanup()` and `localStorage.clear()` after each test). `pnpm --dir web test` runs Vitest once.
 
 - [ ] **Step 1: Scaffold the app**
 
 Run from the project root:
 ```bash
-pnpm create vite@latest frontend --template react-ts
+pnpm create vite@latest web --template react-ts
 ```
 If prompted with "Install with pnpm and start now?", answer **No**. Then:
 ```bash
-pnpm --dir frontend install
+pnpm --dir web install
 ```
-If pnpm prints `Ignored build scripts: esbuild`, run `pnpm --dir frontend approve-builds` and approve `esbuild`.
+If pnpm prints `Ignored build scripts: esbuild`, run `pnpm --dir web approve-builds` and approve `esbuild`.
 
 - [ ] **Step 2: Verify React 19 and strict TS**
 
-Run: `pnpm --dir frontend list react react-dom`
+Run: `pnpm --dir web list react react-dom`
 Expected: both `19.x`.
-Run: `grep '"strict"' frontend/tsconfig.app.json`
+Run: `grep '"strict"' web/tsconfig.app.json`
 Expected: `"strict": true,`
 
 - [ ] **Step 3: Remove unused template files**
 
 ```bash
-rm -rf frontend/src/App.css frontend/src/assets frontend/public/vite.svg frontend/README.md frontend/.gitignore
+rm -rf web/src/App.css web/src/assets web/public/vite.svg web/README.md web/.gitignore
 ```
 (The root `.gitignore` covers the frontend.)
 
 - [ ] **Step 4: Install test dependencies**
 
 ```bash
-pnpm --dir frontend add -D vitest jsdom @testing-library/react @testing-library/dom @testing-library/user-event @testing-library/jest-dom
+pnpm --dir web add -D vitest jsdom @testing-library/react @testing-library/dom @testing-library/user-event @testing-library/jest-dom
 ```
 
-- [ ] **Step 5: Replace `frontend/vite.config.ts`** (Tailwind is added in Task 3)
+- [ ] **Step 5: Replace `web/vite.config.ts`** (Tailwind is added in Task 3)
 
 ```ts
 import react from '@vitejs/plugin-react'
@@ -219,7 +219,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 6: Create `frontend/src/test/setup.ts`**
+- [ ] **Step 6: Create `web/src/test/setup.ts`**
 
 ```ts
 import '@testing-library/jest-dom/vitest'
@@ -232,7 +232,7 @@ afterEach(() => {
 })
 ```
 
-- [ ] **Step 7: Add test scripts to `frontend/package.json`**
+- [ ] **Step 7: Add test scripts to `web/package.json`**
 
 Set the `"scripts"` object to exactly:
 ```json
@@ -247,7 +247,7 @@ Set the `"scripts"` object to exactly:
 }
 ```
 
-- [ ] **Step 8: Write the failing test** — `frontend/src/App.test.tsx`
+- [ ] **Step 8: Write the failing test** — `web/src/App.test.tsx`
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -264,10 +264,10 @@ describe('App', () => {
 
 - [ ] **Step 9: Run test to verify it fails**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: FAIL. `Unable to find an accessible element with the role "heading" and name "AI Docs"` (the template still renders "Vite + React").
 
-- [ ] **Step 10: Replace `frontend/src/App.tsx`**
+- [ ] **Step 10: Replace `web/src/App.tsx`**
 
 ```tsx
 export default function App() {
@@ -279,7 +279,7 @@ export default function App() {
 }
 ```
 
-- [ ] **Step 11: Replace `frontend/src/main.tsx`**
+- [ ] **Step 11: Replace `web/src/main.tsx`**
 
 ```tsx
 import { StrictMode } from 'react'
@@ -297,13 +297,13 @@ createRoot(root).render(
 )
 ```
 
-- [ ] **Step 12: Replace `frontend/src/index.css`** with an empty placeholder (Task 3 fills it)
+- [ ] **Step 12: Replace `web/src/index.css`** with an empty placeholder (Task 3 fills it)
 
 ```css
 /* Tailwind is configured in Task 3 */
 ```
 
-- [ ] **Step 13: Replace `frontend/index.html`**
+- [ ] **Step 13: Replace `web/index.html`**
 
 ```html
 <!doctype html>
@@ -322,15 +322,15 @@ createRoot(root).render(
 
 - [ ] **Step 14: Run tests and typecheck**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: PASS, `1 passed`.
-Run: `pnpm --dir frontend typecheck`
+Run: `pnpm --dir web typecheck`
 Expected: exits 0 with no output.
 
 - [ ] **Step 15: Commit**
 
 ```bash
-git add frontend
+git add web
 git commit -m "chore(frontend): scaffold react-ts app with vitest"
 ```
 
@@ -339,8 +339,8 @@ git commit -m "chore(frontend): scaffold react-ts app with vitest"
 ### Task 3: Tailwind v4, typography and dark variant
 
 **Files:**
-- Modify: `frontend/vite.config.ts`
-- Replace: `frontend/src/index.css`
+- Modify: `web/vite.config.ts`
+- Replace: `web/src/index.css`
 
 **Interfaces:**
 - Consumes: Task 2 scaffold.
@@ -349,10 +349,10 @@ git commit -m "chore(frontend): scaffold react-ts app with vitest"
 - [ ] **Step 1: Install Tailwind**
 
 ```bash
-pnpm --dir frontend add -D tailwindcss @tailwindcss/vite @tailwindcss/typography
+pnpm --dir web add -D tailwindcss @tailwindcss/vite @tailwindcss/typography
 ```
 
-- [ ] **Step 2: Replace `frontend/vite.config.ts`**
+- [ ] **Step 2: Replace `web/vite.config.ts`**
 
 ```ts
 import tailwindcss from '@tailwindcss/vite'
@@ -376,7 +376,7 @@ export default defineConfig({
 })
 ```
 
-- [ ] **Step 3: Replace `frontend/src/index.css`**
+- [ ] **Step 3: Replace `web/src/index.css`**
 
 ```css
 @import 'tailwindcss';
@@ -393,26 +393,26 @@ body,
 
 - [ ] **Step 4: Verify the production build compiles the CSS**
 
-Run: `pnpm --dir frontend build`
+Run: `pnpm --dir web build`
 Expected: exits 0; output lists `dist/index.html`, `dist/assets/index-*.css`, `dist/assets/index-*.js`.
 
-Run: `grep -o 'dark' frontend/dist/assets/index-*.css | head -1`
+Run: `grep -o 'dark' web/dist/assets/index-*.css | head -1`
 Expected: `dark`. This confirms the `dark:` utilities used in `App.tsx` were generated against the class variant.
 
 - [ ] **Step 5: Manually verify the dev server**
 
-Run: `pnpm --dir frontend dev`, open http://localhost:5173.
+Run: `pnpm --dir web dev`, open http://localhost:5173.
 Expected: white page with an "AI Docs" heading in the system sans font, with no Vite boilerplate. In DevTools, add class `dark` to `<html>`: the background turns near-black and the text light. Stop the server.
 
 - [ ] **Step 6: Run tests**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: PASS, `1 passed`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend
+git add web
 git commit -m "feat(frontend): add tailwind v4 with typography and class dark mode"
 ```
 
@@ -421,8 +421,8 @@ git commit -m "feat(frontend): add tailwind v4 with typography and class dark mo
 ### Task 4: Zod-validated environment module
 
 **Files:**
-- Create: `frontend/src/env.ts`, `frontend/src/env.test.ts`
-- Replace: `frontend/src/vite-env.d.ts`
+- Create: `web/src/env.ts`, `web/src/env.test.ts`
+- Replace: `web/src/vite-env.d.ts`
 
 **Interfaces:**
 - Consumes: Task 2 Vitest setup.
@@ -437,12 +437,12 @@ git commit -m "feat(frontend): add tailwind v4 with typography and class dark mo
 - [ ] **Step 1: Install Zod**
 
 ```bash
-pnpm --dir frontend add zod
+pnpm --dir web add zod
 ```
-Run: `pnpm --dir frontend list zod`
+Run: `pnpm --dir web list zod`
 Expected: `zod 4.x`.
 
-- [ ] **Step 2: Write the failing test** — `frontend/src/env.test.ts`
+- [ ] **Step 2: Write the failing test** — `web/src/env.test.ts`
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -483,10 +483,10 @@ describe('parseEnv', () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `pnpm --dir frontend test src/env.test.ts`
+Run: `pnpm --dir web test src/env.test.ts`
 Expected: FAIL with `Failed to resolve import "./env"`.
 
-- [ ] **Step 4: Implement `frontend/src/env.ts`**
+- [ ] **Step 4: Implement `web/src/env.ts`**
 
 ```ts
 import { z } from 'zod'
@@ -513,7 +513,7 @@ export function parseEnv(source: Record<string, unknown>): Env {
 export const env: Env = parseEnv(import.meta.env)
 ```
 
-- [ ] **Step 5: Replace `frontend/src/vite-env.d.ts`**
+- [ ] **Step 5: Replace `web/src/vite-env.d.ts`**
 
 ```ts
 /// <reference types="vite/client" />
@@ -529,15 +529,15 @@ interface ImportMeta {
 
 - [ ] **Step 6: Run tests and typecheck**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: PASS, `7 passed` (6 env + 1 App).
-Run: `pnpm --dir frontend typecheck`
+Run: `pnpm --dir web typecheck`
 Expected: exits 0.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend
+git add web
 git commit -m "feat(frontend): add zod-validated env module"
 ```
 
@@ -546,20 +546,20 @@ git commit -m "feat(frontend): add zod-validated env module"
 ### Task 5: ESLint, Prettier and lint-staged
 
 **Files:**
-- Modify: `frontend/eslint.config.js` (generated), `frontend/package.json`
-- Create: `frontend/.prettierrc.json`, `frontend/.prettierignore`
+- Modify: `web/eslint.config.js` (generated), `web/package.json`
+- Create: `web/.prettierrc.json`, `web/.prettierignore`
 
 **Interfaces:**
 - Consumes: Tasks 2–4 source files.
-- Produces: `pnpm --dir frontend lint`, `pnpm --dir frontend format`, `pnpm --dir frontend format:check`, and a `lint-staged` config used by the Husky pre-commit hook in Task 8 (`pnpm --dir frontend exec lint-staged`).
+- Produces: `pnpm --dir web lint`, `pnpm --dir web format`, `pnpm --dir web format:check`, and a `lint-staged` config used by the Husky pre-commit hook in Task 8 (`pnpm --dir web exec lint-staged`).
 
 - [ ] **Step 1: Install tooling**
 
 ```bash
-pnpm --dir frontend add -D prettier eslint-config-prettier lint-staged
+pnpm --dir web add -D prettier eslint-config-prettier lint-staged
 ```
 
-- [ ] **Step 2: Create `frontend/.prettierrc.json`**
+- [ ] **Step 2: Create `web/.prettierrc.json`**
 
 ```json
 {
@@ -570,7 +570,7 @@ pnpm --dir frontend add -D prettier eslint-config-prettier lint-staged
 }
 ```
 
-- [ ] **Step 3: Create `frontend/.prettierignore`**
+- [ ] **Step 3: Create `web/.prettierignore`**
 
 ```
 dist
@@ -578,7 +578,7 @@ coverage
 pnpm-lock.yaml
 ```
 
-- [ ] **Step 4: Add Prettier compatibility to `frontend/eslint.config.js`**
+- [ ] **Step 4: Add Prettier compatibility to `web/eslint.config.js`**
 
 Keep the generated file. Make two edits:
 1. Add this import after the existing imports:
@@ -598,7 +598,7 @@ Keep the generated file. Make two edits:
    ```
    Also make sure the ignore list includes `coverage`. If the file has `globalIgnores(['dist'])`, change it to `globalIgnores(['dist', 'coverage'])`. If it uses `{ ignores: ['dist'] }`, change it to `{ ignores: ['dist', 'coverage'] }`.
 
-- [ ] **Step 5: Add format scripts and lint-staged config to `frontend/package.json`**
+- [ ] **Step 5: Add format scripts and lint-staged config to `web/package.json`**
 
 Add to `"scripts"`:
 ```json
@@ -615,27 +615,27 @@ Add a top-level key:
 
 - [ ] **Step 6: Format the codebase and verify**
 
-Run: `pnpm --dir frontend format`
+Run: `pnpm --dir web format`
 Expected: lists the files it formatted, with no errors.
-Run: `pnpm --dir frontend format:check`
+Run: `pnpm --dir web format:check`
 Expected: `All matched files use Prettier code style!`
-Run: `pnpm --dir frontend lint`
+Run: `pnpm --dir web lint`
 Expected: exits 0 with no problems reported.
 
 - [ ] **Step 7: Verify lint catches errors**
 
-Temporarily append `const unused = 1` to `frontend/src/App.tsx`, then run `pnpm --dir frontend lint`.
+Temporarily append `const unused = 1` to `web/src/App.tsx`, then run `pnpm --dir web lint`.
 Expected: FAIL with `'unused' is assigned a value but never used` (`@typescript-eslint/no-unused-vars`). Remove the line and re-run lint; it should exit 0.
 
 - [ ] **Step 8: Run tests**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: PASS, `7 passed`.
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add frontend
+git add web
 git commit -m "chore(frontend): configure eslint, prettier and lint-staged"
 ```
 
@@ -644,10 +644,10 @@ git commit -m "chore(frontend): configure eslint, prettier and lint-staged"
 ### Task 6: Backend scaffold and settings
 
 **Files:**
-- Create (via `uv init`): `backend/pyproject.toml`, `backend/.python-version`
-- Delete: `backend/main.py`, `backend/README.md` (generated by `uv init`)
-- Modify: `backend/pyproject.toml` (append tool config)
-- Create: `backend/app/__init__.py`, `backend/app/config.py`, `backend/tests/conftest.py`, `backend/tests/test_config.py`
+- Create (via `uv init`): `api/pyproject.toml`, `api/.python-version`
+- Delete: `api/main.py`, `api/README.md` (generated by `uv init`)
+- Modify: `api/pyproject.toml` (append tool config)
+- Create: `api/app/__init__.py`, `api/app/config.py`, `api/tests/conftest.py`, `api/tests/test_config.py`
 
 **Interfaces:**
 - Consumes: Task 1 repo.
@@ -663,23 +663,23 @@ git commit -m "chore(frontend): configure eslint, prettier and lint-staged"
 - [ ] **Step 1: Initialize the uv project**
 
 ```bash
-mkdir backend
-cd backend
+mkdir api
+cd api
 uv init --app --vcs none --python 3.13 --name ai-docs-backend
 rm -f main.py README.md
 ```
-Expected: `Initialized project 'ai-docs-backend'`. `backend/.python-version` contains `3.13`.
+Expected: `Initialized project 'ai-docs-backend'`. `api/.python-version` contains `3.13`.
 
 - [ ] **Step 2: Add dependencies**
 
-From `backend/`:
+From `api/`:
 ```bash
 uv add "fastapi[standard]" pydantic-settings
 uv add --dev pytest pytest-asyncio ruff
 ```
 Expected: each command prints `Resolved N packages` and creates or updates `uv.lock` and `.venv/`.
 
-- [ ] **Step 3: Append tool config to `backend/pyproject.toml`**
+- [ ] **Step 3: Append tool config to `api/pyproject.toml`**
 
 ```toml
 [tool.ruff]
@@ -696,13 +696,13 @@ asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 ```
 
-- [ ] **Step 4: Create the package** — `backend/app/__init__.py`
+- [ ] **Step 4: Create the package** — `api/app/__init__.py`
 
 ```python
 ```
 (An empty file.)
 
-- [ ] **Step 5: Write the failing test** — `backend/tests/test_config.py`
+- [ ] **Step 5: Write the failing test** — `api/tests/test_config.py`
 
 ```python
 import pytest
@@ -726,10 +726,10 @@ def test_get_settings_is_cached() -> None:
 
 - [ ] **Step 6: Run test to verify it fails**
 
-Run (from `backend/`): `uv run pytest tests/test_config.py -v`
+Run (from `api/`): `uv run pytest tests/test_config.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.config'`.
 
-- [ ] **Step 7: Implement `backend/app/config.py`**
+- [ ] **Step 7: Implement `api/app/config.py`**
 
 ```python
 from functools import lru_cache
@@ -748,7 +748,7 @@ def get_settings() -> Settings:
     return Settings()
 ```
 
-- [ ] **Step 8: Create `backend/tests/conftest.py`**
+- [ ] **Step 8: Create `api/tests/conftest.py`**
 
 ```python
 from collections.abc import Iterator
@@ -773,7 +773,7 @@ def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
 
 - [ ] **Step 9: Run tests and linters**
 
-Run (from `backend/`): `uv run pytest -v`
+Run (from `api/`): `uv run pytest -v`
 Expected: PASS, `3 passed`.
 Run: `uv run ruff check . && uv run ruff format --check .`
 Expected: `All checks passed!` and `N files already formatted`. If format reports files, run `uv run ruff format .` and re-check.
@@ -782,7 +782,7 @@ Expected: `All checks passed!` and `N files already formatted`. If format report
 
 ```bash
 cd ..
-git add backend
+git add api
 git commit -m "chore(backend): scaffold uv project with settings"
 ```
 
@@ -791,8 +791,8 @@ git commit -m "chore(backend): scaffold uv project with settings"
 ### Task 7: FastAPI app factory, CORS and health endpoint
 
 **Files:**
-- Create: `backend/app/main.py`, `backend/app/api/__init__.py`, `backend/app/api/health.py`, `backend/tests/test_health.py`, `backend/.env.example`
-- Modify: `backend/tests/conftest.py` (add `client` fixture)
+- Create: `api/app/main.py`, `api/app/api/__init__.py`, `api/app/api/health.py`, `api/tests/test_health.py`, `api/.env.example`
+- Modify: `api/tests/conftest.py` (add `client` fixture)
 
 **Interfaces:**
 - Consumes: `Settings`, `get_settings` (Task 6).
@@ -808,7 +808,7 @@ git commit -m "chore(backend): scaffold uv project with settings"
   ```
   Phase 3 adds `app.include_router(models_router, prefix="/api")` and `app.include_router(suggestions_router, prefix="/api")` inside `create_app`, and widens CORS `allow_methods` if needed (GET and POST are already allowed).
 
-- [ ] **Step 1: Add the `client` fixture to `backend/tests/conftest.py`**
+- [ ] **Step 1: Add the `client` fixture to `api/tests/conftest.py`**
 
 Replace the file with:
 ```python
@@ -840,7 +840,7 @@ def client(settings: Settings) -> Iterator[TestClient]:
         yield test_client
 ```
 
-- [ ] **Step 2: Write the failing test** — `backend/tests/test_health.py`
+- [ ] **Step 2: Write the failing test** — `api/tests/test_health.py`
 
 ```python
 from fastapi.testclient import TestClient
@@ -877,16 +877,16 @@ def test_cors_ignores_unknown_origin(client: TestClient) -> None:
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run (from `backend/`): `uv run pytest -v`
+Run (from `api/`): `uv run pytest -v`
 Expected: collection error `ModuleNotFoundError: No module named 'app.main'`.
 
-- [ ] **Step 4: Create `backend/app/api/__init__.py`**
+- [ ] **Step 4: Create `api/app/api/__init__.py`**
 
 ```python
 ```
 (An empty file.)
 
-- [ ] **Step 5: Implement `backend/app/api/health.py`**
+- [ ] **Step 5: Implement `api/app/api/health.py`**
 
 ```python
 from typing import Literal
@@ -906,7 +906,7 @@ def health() -> HealthResponse:
     return HealthResponse(status="ok")
 ```
 
-- [ ] **Step 6: Implement `backend/app/main.py`**
+- [ ] **Step 6: Implement `api/app/main.py`**
 
 ```python
 from fastapi import FastAPI
@@ -934,13 +934,13 @@ app = create_app()
 
 - [ ] **Step 7: Run tests to verify they pass**
 
-Run (from `backend/`): `uv run pytest -v`
+Run (from `api/`): `uv run pytest -v`
 Expected: PASS, `6 passed`.
 
-- [ ] **Step 8: Create `backend/.env.example`**
+- [ ] **Step 8: Create `api/.env.example`**
 
 ```dotenv
-# Copy to backend/.env and adjust. All values are optional in phase 1.
+# Copy to api/.env and adjust. All values are optional in phase 1.
 
 # Allowed browser origins (JSON list). The Vite dev server proxies /api, so this
 # only matters when the frontend calls the backend directly.
@@ -949,23 +949,23 @@ CORS_ORIGINS=["http://localhost:5173"]
 
 - [ ] **Step 9: Manually verify the server and the proxy**
 
-Terminal 1 (from `backend/`): `uv run fastapi dev app/main.py`
+Terminal 1 (from `api/`): `uv run fastapi dev app/main.py`
 Expected: `Uvicorn running on http://127.0.0.1:8000`.
 Run: `curl -s http://localhost:8000/api/health`
 Expected: `{"status":"ok"}`
 
-Terminal 2: `pnpm --dir frontend dev`
+Terminal 2: `pnpm --dir web dev`
 Run: `curl -s http://localhost:5173/api/health`
 Expected: `{"status":"ok"}`. The Vite proxy forwards `/api` to the backend.
 Stop both servers.
 
 - [ ] **Step 10: Lint and commit**
 
-Run (from `backend/`): `uv run ruff check . && uv run ruff format --check .`
+Run (from `api/`): `uv run ruff check . && uv run ruff format --check .`
 Expected: `All checks passed!` and every file already formatted.
 ```bash
 cd ..
-git add backend
+git add api
 git commit -m "feat(backend): add app factory with cors and health endpoint"
 ```
 
@@ -993,16 +993,16 @@ Expected: `.husky/pre-commit` is created, and the root `package.json` now has `"
 - [ ] **Step 2: Replace `.husky/pre-commit`**
 
 ```sh
-pnpm --dir frontend exec lint-staged
-cd backend && uv run ruff check . && uv run ruff format --check .
+pnpm --dir web exec lint-staged
+cd api && uv run ruff check . && uv run ruff format --check .
 ```
 
 - [ ] **Step 3: Create `.husky/pre-push`**
 
 ```sh
-pnpm --dir frontend typecheck
-pnpm --dir frontend test
-cd backend && uv run pytest -q
+pnpm --dir web typecheck
+pnpm --dir web test
+cd api && uv run pytest -q
 ```
 
 - [ ] **Step 4: Make the hooks executable**
@@ -1053,27 +1053,27 @@ Specs and implementation plans live in [`docs/specs/`](docs/specs/00-overview.md
 
 ```bash
 pnpm install                  # root: installs git hooks (husky)
-pnpm --dir frontend install
-cd backend && uv sync && cp .env.example .env
+pnpm --dir web install
+cd api && uv sync && cp .env.example .env
 ```
 
 ## Run
 
 ```bash
 # Terminal 1: API on http://localhost:8000
-cd backend && uv run fastapi dev app/main.py
+cd api && uv run fastapi dev app/main.py
 
 # Terminal 2: web app on http://localhost:5173 (proxies /api to the API)
-pnpm --dir frontend dev
+pnpm --dir web dev
 ```
 
 ## Checks
 
 ```bash
-pnpm --dir frontend lint
-pnpm --dir frontend typecheck
-pnpm --dir frontend test
-cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest
+pnpm --dir web lint
+pnpm --dir web typecheck
+pnpm --dir web test
+cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest
 ```
 
 Git hooks run these automatically: lint/format on commit, typecheck and tests on push.
@@ -1082,7 +1082,7 @@ Git hooks run these automatically: lint/format on commit, typecheck and tests on
 - [ ] **Step 8: Commit (exercises the pre-commit hook)**
 
 ```bash
-pnpm --dir frontend exec prettier --write ../README.md
+pnpm --dir web exec prettier --write ../README.md
 git add package.json pnpm-lock.yaml .husky README.md
 git commit -m "chore: add husky hooks and readme"
 ```
@@ -1090,14 +1090,14 @@ Expected: before the commit is created, lint-staged output appears (`→ No stag
 
 - [ ] **Step 9: Verify the hook blocks bad code**
 
-Temporarily append `import os` to `backend/app/config.py`, then run `git add backend/app/config.py && git commit -m "test: hook"`.
-Expected: the commit is **rejected** with ruff `F401 [*] 'os' imported but unused`. Revert with `git checkout backend/app/config.py` (unstage it first with `git restore --staged backend/app/config.py`).
+Temporarily append `import os` to `api/app/config.py`, then run `git add api/app/config.py && git commit -m "test: hook"`.
+Expected: the commit is **rejected** with ruff `F401 [*] 'os' imported but unused`. Revert with `git checkout api/app/config.py` (unstage it first with `git restore --staged api/app/config.py`).
 
 ---
 
 ## Phase Exit Criteria
 
 - `git log --oneline` shows 8 commits (one per task).
-- `pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test` passes (7 tests).
-- `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest` passes (6 tests).
+- `pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test` passes (7 tests).
+- `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest` passes (6 tests).
 - With both dev servers running, `curl http://localhost:5173/api/health` returns `{"status":"ok"}`.

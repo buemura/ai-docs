@@ -1,0 +1,3 @@
+pnpm --dir web typecheck
+pnpm --dir web test
+cd api && uv run pytest -q
