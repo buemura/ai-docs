@@ -27,6 +27,17 @@ const groupClass =
   '[&_[cmdk-group-heading]]:px-3 [&_[cmdk-group-heading]]:pb-1 [&_[cmdk-group-heading]]:pt-3 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-semibold [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:text-slate-500'
 const hintClass = 'text-xs text-slate-400'
 
+/**
+ * Every typed word must appear in the item's value or keywords. cmdk's default fuzzy match
+ * accepts scattered letters ("export" matches "Expand with more detail"), which here could
+ * start the wrong AI request.
+ */
+function matchWords(value: string, search: string, keywords: string[] = []): number {
+  const haystack = [value, ...keywords].join(' ').toLowerCase()
+  const words = search.toLowerCase().split(/\s+/).filter(Boolean)
+  return words.every((word) => haystack.includes(word)) ? 1 : 0
+}
+
 export function CommandPalette({ open, onOpenChange, onSwitchTab, onAskAi }: CommandPaletteProps) {
   const { content } = useDocument()
   const { theme, toggleTheme } = useTheme()
@@ -43,6 +54,7 @@ export function CommandPalette({ open, onOpenChange, onSwitchTab, onAskAi }: Com
       open={open}
       onOpenChange={onOpenChange}
       label="Command palette"
+      filter={matchWords}
       overlayClassName="fixed inset-0 z-40 bg-black/30"
       contentClassName="fixed left-1/2 top-24 z-50 w-[min(36rem,calc(100vw-2rem))] -translate-x-1/2 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"
     >

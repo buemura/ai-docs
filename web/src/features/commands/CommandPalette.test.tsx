@@ -58,6 +58,24 @@ describe('CommandPalette', () => {
     expect(screen.queryByRole('option', { name: /improve writing/i })).not.toBeInTheDocument()
   })
 
+  it('matches whole words, not scattered letters', async () => {
+    const { user } = setup()
+    // Fuzzy matching would also accept "Expand with more detail" (e-x-p…o-r…t).
+    await user.type(screen.getByPlaceholderText('Type a command or search…'), 'export')
+    expect(screen.getByRole('option', { name: 'Export as Markdown' })).toBeInTheDocument()
+    expect(screen.queryByRole('option', { name: /expand/i })).not.toBeInTheDocument()
+  })
+
+  it('matches presets by slash name and items by keywords', async () => {
+    const { user } = setup()
+    const input = screen.getByPlaceholderText('Type a command or search…')
+    await user.type(input, 'tldr')
+    expect(screen.getByRole('option', { name: /add tl;dr summary/i })).toBeInTheDocument()
+    await user.clear(input)
+    await user.type(input, 'dark')
+    expect(screen.getByRole('option', { name: 'Switch to dark theme' })).toBeInTheDocument()
+  })
+
   it('runs a preset and closes', async () => {
     const { user, onOpenChange } = setup()
     await user.click(screen.getByRole('option', { name: /make more concise/i }))
