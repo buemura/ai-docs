@@ -1958,7 +1958,9 @@ type Api = {
 
 function Probe({ onRender }: { onRender(api: Api): void }) {
   const api: Api = { suggestion: useSuggestion(), document: useDocument(), models: useModels() }
-  useEffect(() => onRender(api))
+  useEffect(() => {
+    onRender(api)
+  })
   return null
 }
 
