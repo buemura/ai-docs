@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { ModelProvider } from './features/ai/ModelProvider'
+import { ModelSelect } from './features/ai/ModelSelect'
 import { DocumentProvider, useDocument } from './features/document/DocumentProvider'
 import { MarkdownEditor } from './features/editor/MarkdownEditor'
 import { AppHeader } from './features/layout/AppHeader'
@@ -13,7 +15,9 @@ function AppShell() {
 
   return (
     <div className="flex h-dvh flex-col bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <AppHeader />
+      <AppHeader>
+        <ModelSelect />
+      </AppHeader>
       <main className="min-h-0 flex-1">
         <Tabs
           active={activeTab}
@@ -44,7 +48,9 @@ export default function App() {
   return (
     <ThemeProvider>
       <DocumentProvider>
-        <AppShell />
+        <ModelProvider>
+          <AppShell />
+        </ModelProvider>
       </DocumentProvider>
     </ThemeProvider>
   )
