@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { useState } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { SelectRange, renderWithAi } from '../../test/renderWithAi'
 import {
@@ -89,5 +90,31 @@ describe('AskAiBar', () => {
       ),
     )
     expect(screen.getByRole('textbox', { name: 'AI instruction' })).toBeDisabled()
+  })
+
+  it('renders quick actions and focuses the input on request', async () => {
+    const user = userEvent.setup()
+    mockApi()
+    function FocusHarness() {
+      const [requested, setRequested] = useState(false)
+      return (
+        <>
+          <button type="button" onClick={() => setRequested(true)}>
+            Request focus
+          </button>
+          <AskAiBar
+            focusRequested={requested}
+            onFocusHandled={() => setRequested(false)}
+            quickActions={<button type="button">Quick action</button>}
+          />
+        </>
+      )
+    }
+    renderWithAi(<FocusHarness />, { content: 'Hello' })
+    expect(screen.getByRole('button', { name: 'Quick action' })).toBeInTheDocument()
+    const input = screen.getByRole('textbox', { name: 'AI instruction' })
+    await waitFor(() => expect(input).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'Request focus' }))
+    await waitFor(() => expect(input).toHaveFocus())
   })
 })
