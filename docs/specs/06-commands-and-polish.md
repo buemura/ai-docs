@@ -15,33 +15,33 @@
 - Node 24, pnpm, React 19, TypeScript strict, Tailwind CSS v4 (class-based `dark` variant), Zod v4, Vitest + Testing Library + jsdom.
 - The AI never edits the document directly. Every preset, palette action, and slash command goes through `useSuggestion().start(...)`, so the user still accepts or rejects each hunk.
 - One suggestion at a time. Every AI trigger is disabled while `useSuggestion().isBusy` is true, and also while no model is selected or the model catalog isn't `ready`.
-- `AiPreset = { id: string; label: string; slash: string; instruction: string; target: 'auto' | 'document' | 'block' }` and `AI_PRESETS: AiPreset[]` live in `frontend/src/features/commands/presets.ts`.
+- `AiPreset = { id: string; label: string; slash: string; instruction: string; target: 'auto' | 'document' | 'block' }` and `AI_PRESETS: AiPreset[]` live in `web/src/features/commands/presets.ts`.
 - Slash command `ask` is reserved. It focuses the AskAiBar instead of running a preset.
 - All interactive controls are keyboard-reachable and have accessible names. Tests query by role and name.
 - No real network calls in tests. Frontend tests mock `fetch`.
 - TDD for every task: failing test → minimal implementation → passing test → commit. Conventional Commits.
-- Frontend checks: `pnpm --dir frontend lint`, `pnpm --dir frontend typecheck`, `pnpm --dir frontend test`. Backend checks: `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
+- Frontend checks: `pnpm --dir web lint`, `pnpm --dir web typecheck`, `pnpm --dir web test`. Backend checks: `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest`.
 
 ## Assumptions about earlier phases (verify before starting)
 
 Phases 1–5 are assumed to follow the overview contracts exactly. This plan also relies on these concrete details, which the overview doesn't pin down. Check each one before Task 1 and adjust import paths if a phase placed something differently:
 
-1. `TextRange` is exported from `frontend/src/features/document/schema.ts`; `useDocument` from `frontend/src/features/document/DocumentProvider.tsx`.
-2. `useTheme` is exported from `frontend/src/features/theme/ThemeProvider.tsx`.
-3. `useModels` is exported from `frontend/src/features/ai/ModelProvider.tsx`.
-4. `useSuggestion` is exported from `frontend/src/features/suggestions/SuggestionProvider.tsx`; `SuggestionTarget` from `frontend/src/features/suggestions/types.ts`.
-5. `TabId` is exported from `frontend/src/features/layout/Tabs.tsx`, and `Tabs` renders `role="tab"` buttons with `aria-selected`.
-6. `frontend/src/App.tsx` defines `AppShell`, which owns `const [activeTab, setActiveTab] = useState<TabId>('editor')` and renders `<VersionsProvider><SuggestionBridge onStart={…}><Workspace activeTab={activeTab} onTabChange={setActiveTab} /></SuggestionBridge></VersionsProvider>`. `Workspace({ activeTab, onTabChange })` renders `<AppHeader><ModelSelect /></AppHeader>`, `<AskAiBar />` (in the editor panel), and `<MarkdownEditor ... />`. `AppHeader` is `AppHeader({ children }: { children?: ReactNode })`.
+1. `TextRange` is exported from `web/src/features/document/schema.ts`; `useDocument` from `web/src/features/document/DocumentProvider.tsx`.
+2. `useTheme` is exported from `web/src/features/theme/ThemeProvider.tsx`.
+3. `useModels` is exported from `web/src/features/ai/ModelProvider.tsx`.
+4. `useSuggestion` is exported from `web/src/features/suggestions/SuggestionProvider.tsx`; `SuggestionTarget` from `web/src/features/suggestions/types.ts`.
+5. `TabId` is exported from `web/src/features/layout/Tabs.tsx`, and `Tabs` renders `role="tab"` buttons with `aria-selected`.
+6. `web/src/App.tsx` defines `AppShell`, which owns `const [activeTab, setActiveTab] = useState<TabId>('editor')` and renders `<VersionsProvider><SuggestionBridge onStart={…}><Workspace activeTab={activeTab} onTabChange={setActiveTab} /></SuggestionBridge></VersionsProvider>`. `Workspace({ activeTab, onTabChange })` renders `<AppHeader><ModelSelect /></AppHeader>`, `<AskAiBar />` (in the editor panel), and `<MarkdownEditor ... />`. `AppHeader` is `AppHeader({ children }: { children?: ReactNode })`.
 7. `AskAiBar` (phase 4) takes no required props and contains one instruction `<input>` and a "Suggest" submit button.
-8. The `test` script in `frontend/package.json` is `vitest run`, and `frontend/src/test/setup.ts` is registered in Vitest `setupFiles`.
+8. The `test` script in `web/package.json` is `vitest run`, and `web/src/test/setup.ts` is registered in Vitest `setupFiles`.
 
 ---
 
 ### Task 1: AI presets and target resolution
 
 **Files:**
-- Create: `frontend/src/features/commands/presets.ts`
-- Test: `frontend/src/features/commands/presets.test.ts`
+- Create: `web/src/features/commands/presets.ts`
+- Test: `web/src/features/commands/presets.test.ts`
 
 **Interfaces:**
 - Consumes: `TextRange` (`{ from: number; to: number }`) from `features/document/schema`; `SuggestionTarget` (`'auto' | 'document' | TextRange`) from `features/suggestions/types`.
@@ -54,7 +54,7 @@ Phases 1–5 are assumed to follow the overview contracts exactly. This plan als
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/commands/presets.test.ts`:
+`web/src/features/commands/presets.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -156,12 +156,12 @@ describe('resolvePresetTarget', () => {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/commands/presets.test.ts`
+Run: `pnpm --dir web test src/features/commands/presets.test.ts`
 Expected: FAIL with `Failed to resolve import "./presets" from "src/features/commands/presets.test.ts"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/commands/presets.ts`:
+`web/src/features/commands/presets.ts`:
 
 ```ts
 import type { TextRange } from '../document/schema'
@@ -282,13 +282,13 @@ export function resolvePresetTarget(preset: AiPreset, content: string, selection
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `pnpm --dir frontend test src/features/commands/presets.test.ts`
+Run: `pnpm --dir web test src/features/commands/presets.test.ts`
 Expected: PASS, `Tests  13 passed (13)`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/commands/presets.ts frontend/src/features/commands/presets.test.ts
+git add web/src/features/commands/presets.ts web/src/features/commands/presets.test.ts
 git commit -m "feat(commands): add AI presets and preset target resolution"
 ```
 
@@ -297,8 +297,8 @@ git commit -m "feat(commands): add AI presets and preset target resolution"
 ### Task 2: `useRunPreset` hook
 
 **Files:**
-- Create: `frontend/src/features/commands/useRunPreset.ts`
-- Test: `frontend/src/features/commands/useRunPreset.test.tsx`
+- Create: `web/src/features/commands/useRunPreset.ts`
+- Test: `web/src/features/commands/useRunPreset.test.tsx`
 
 **Interfaces:**
 - Consumes: `useDocument()` → `{ content, selection }`; `useModels()` → `{ selectedModel, status }`; `useSuggestion()` → `{ isBusy, start(input: StartSuggestionInput) }`; `resolvePresetTarget` (Task 1).
@@ -308,7 +308,7 @@ git commit -m "feat(commands): add AI presets and preset target resolution"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/commands/useRunPreset.test.tsx`:
+`web/src/features/commands/useRunPreset.test.tsx`:
 
 ```tsx
 import { renderHook } from '@testing-library/react'
@@ -413,12 +413,12 @@ describe('useRunPreset', () => {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/commands/useRunPreset.test.tsx`
+Run: `pnpm --dir web test src/features/commands/useRunPreset.test.tsx`
 Expected: FAIL with `Failed to resolve import "./useRunPreset"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/commands/useRunPreset.ts`:
+`web/src/features/commands/useRunPreset.ts`:
 
 ```ts
 import { useCallback } from 'react'
@@ -458,13 +458,13 @@ export function useRunPreset() {
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `pnpm --dir frontend test src/features/commands/useRunPreset.test.tsx`
+Run: `pnpm --dir web test src/features/commands/useRunPreset.test.tsx`
 Expected: PASS, `Tests  5 passed (5)`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/commands/useRunPreset.ts frontend/src/features/commands/useRunPreset.test.tsx
+git add web/src/features/commands/useRunPreset.ts web/src/features/commands/useRunPreset.test.tsx
 git commit -m "feat(commands): add useRunPreset hook"
 ```
 
@@ -473,10 +473,10 @@ git commit -m "feat(commands): add useRunPreset hook"
 ### Task 3: Command palette component
 
 **Files:**
-- Modify: `frontend/package.json` (add `cmdk`)
-- Modify: `frontend/src/test/setup.ts` (jsdom polyfills)
-- Create: `frontend/src/features/commands/CommandPalette.tsx`
-- Test: `frontend/src/features/commands/CommandPalette.test.tsx`
+- Modify: `web/package.json` (add `cmdk`)
+- Modify: `web/src/test/setup.ts` (jsdom polyfills)
+- Create: `web/src/features/commands/CommandPalette.tsx`
+- Test: `web/src/features/commands/CommandPalette.test.tsx`
 
 **Interfaces:**
 - Consumes: `useRunPreset()` (Task 2); `useDocument().content`; `useTheme()` → `{ theme, toggleTheme }`; `useModels()` → `{ models, selectedModel, setSelectedModel }`; `exportFilename(content)` from `features/document/exportFilename`; `downloadTextFile(filename, text)` from `lib/download`; `TabId` from `features/layout/Tabs`; `AI_PRESETS`.
@@ -486,10 +486,10 @@ git commit -m "feat(commands): add useRunPreset hook"
 
 - [ ] **Step 1: Install cmdk and add jsdom polyfills**
 
-Run: `pnpm --dir frontend add cmdk`
+Run: `pnpm --dir web add cmdk`
 Expected: `dependencies: + cmdk 1.x.x`.
 
-Append to `frontend/src/test/setup.ts`. cmdk needs `ResizeObserver` and `scrollIntoView`, and CodeMirror views in later tasks need `Range` rect methods. jsdom implements none of them:
+Append to `web/src/test/setup.ts`. cmdk needs `ResizeObserver` and `scrollIntoView`, and CodeMirror views in later tasks need `Range` rect methods. jsdom implements none of them:
 
 ```ts
 // jsdom polyfills for cmdk (ResizeObserver, scrollIntoView) and CodeMirror (Range rects)
@@ -515,7 +515,7 @@ if (typeof Range.prototype.getBoundingClientRect !== 'function') {
 
 - [ ] **Step 2: Write the failing test**
 
-`frontend/src/features/commands/CommandPalette.test.tsx`:
+`web/src/features/commands/CommandPalette.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -628,12 +628,12 @@ describe('CommandPalette', () => {
 
 - [ ] **Step 3: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/commands/CommandPalette.test.tsx`
+Run: `pnpm --dir web test src/features/commands/CommandPalette.test.tsx`
 Expected: FAIL with `Failed to resolve import "./CommandPalette"`.
 
 - [ ] **Step 4: Write the minimal implementation**
 
-`frontend/src/features/commands/CommandPalette.tsx`:
+`web/src/features/commands/CommandPalette.tsx`:
 
 ```tsx
 import { Command } from 'cmdk'
@@ -789,18 +789,18 @@ export function CommandPalette({ open, onOpenChange, onSwitchTab, onAskAi }: Com
 
 - [ ] **Step 5: Run the test to confirm it passes**
 
-Run: `pnpm --dir frontend test src/features/commands/CommandPalette.test.tsx`
+Run: `pnpm --dir web test src/features/commands/CommandPalette.test.tsx`
 Expected: PASS, `Tests  8 passed (8)`. Radix may log a "Missing `Description`" warning on stderr. That's expected and not a failure.
 
 - [ ] **Step 6: Run the whole suite to confirm the polyfills broke nothing**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: all test files pass.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/src/test/setup.ts frontend/src/features/commands/CommandPalette.tsx frontend/src/features/commands/CommandPalette.test.tsx
+git add web/package.json web/pnpm-lock.yaml web/src/test/setup.ts web/src/features/commands/CommandPalette.tsx web/src/features/commands/CommandPalette.test.tsx
 git commit -m "feat(commands): add cmdk command palette"
 ```
 
@@ -809,11 +809,11 @@ git commit -m "feat(commands): add cmdk command palette"
 ### Task 4: AskAiBar quick-action chips and focus requests
 
 **Files:**
-- Create: `frontend/src/features/commands/PresetChips.tsx`
-- Create: `frontend/src/features/commands/useFocusRequest.ts`
-- Modify: `frontend/src/features/suggestions/AskAiBar.tsx`
-- Test: `frontend/src/features/commands/PresetChips.test.tsx`
-- Test: `frontend/src/features/commands/useFocusRequest.test.tsx`
+- Create: `web/src/features/commands/PresetChips.tsx`
+- Create: `web/src/features/commands/useFocusRequest.ts`
+- Modify: `web/src/features/suggestions/AskAiBar.tsx`
+- Test: `web/src/features/commands/PresetChips.test.tsx`
+- Test: `web/src/features/commands/useFocusRequest.test.tsx`
 
 **Interfaces:**
 - Consumes: `AI_PRESETS`, `AiPreset` (Task 1).
@@ -824,7 +824,7 @@ git commit -m "feat(commands): add cmdk command palette"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/commands/PresetChips.test.tsx`:
+`web/src/features/commands/PresetChips.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -855,7 +855,7 @@ describe('PresetChips', () => {
 })
 ```
 
-`frontend/src/features/commands/useFocusRequest.test.tsx`:
+`web/src/features/commands/useFocusRequest.test.tsx`:
 
 ```tsx
 import { render, screen, waitFor } from '@testing-library/react'
@@ -889,12 +889,12 @@ describe('useFocusRequest', () => {
 
 - [ ] **Step 2: Run the tests to confirm they fail**
 
-Run: `pnpm --dir frontend test src/features/commands/PresetChips.test.tsx src/features/commands/useFocusRequest.test.tsx`
+Run: `pnpm --dir web test src/features/commands/PresetChips.test.tsx src/features/commands/useFocusRequest.test.tsx`
 Expected: FAIL with `Failed to resolve import "./PresetChips"` and `Failed to resolve import "./useFocusRequest"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/commands/PresetChips.tsx`:
+`web/src/features/commands/PresetChips.tsx`:
 
 ```tsx
 import { AI_PRESETS, type AiPreset } from './presets'
@@ -922,7 +922,7 @@ export function PresetChips({ disabled, onPick }: { disabled: boolean; onPick(pr
 }
 ```
 
-`frontend/src/features/commands/useFocusRequest.ts`:
+`web/src/features/commands/useFocusRequest.ts`:
 
 ```ts
 import { useEffect, type RefObject } from 'react'
@@ -942,7 +942,7 @@ export function useFocusRequest(ref: RefObject<HTMLElement | null>, requested: b
 
 - [ ] **Step 4: Modify `AskAiBar`**
 
-In `frontend/src/features/suggestions/AskAiBar.tsx`:
+In `web/src/features/suggestions/AskAiBar.tsx`:
 
 1. Add these imports:
    ```tsx
@@ -973,16 +973,16 @@ In `frontend/src/features/suggestions/AskAiBar.tsx`:
 
 - [ ] **Step 5: Run the tests to confirm they pass**
 
-Run: `pnpm --dir frontend test src/features/commands src/features/suggestions`
+Run: `pnpm --dir web test src/features/commands src/features/suggestions`
 Expected: PASS for the new tests and all existing `AskAiBar` tests.
 
-Run: `pnpm --dir frontend typecheck`
+Run: `pnpm --dir web typecheck`
 Expected: exits 0 with no errors.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/src/features/commands/PresetChips.tsx frontend/src/features/commands/PresetChips.test.tsx frontend/src/features/commands/useFocusRequest.ts frontend/src/features/commands/useFocusRequest.test.tsx frontend/src/features/suggestions/AskAiBar.tsx frontend/src/features/suggestions
+git add web/src/features/commands/PresetChips.tsx web/src/features/commands/PresetChips.test.tsx web/src/features/commands/useFocusRequest.ts web/src/features/commands/useFocusRequest.test.tsx web/src/features/suggestions/AskAiBar.tsx web/src/features/suggestions
 git commit -m "feat(commands): add quick-action chips and focus requests to AskAiBar"
 ```
 
@@ -991,9 +991,9 @@ git commit -m "feat(commands): add quick-action chips and focus requests to AskA
 ### Task 5: Slash command completion source
 
 **Files:**
-- Modify: `frontend/package.json` (add `@codemirror/autocomplete` as a direct dependency)
-- Create: `frontend/src/features/commands/slashCommands.ts`
-- Test: `frontend/src/features/commands/slashCommands.test.ts`
+- Modify: `web/package.json` (add `@codemirror/autocomplete` as a direct dependency)
+- Create: `web/src/features/commands/slashCommands.ts`
+- Test: `web/src/features/commands/slashCommands.test.ts`
 
 **Interfaces:**
 - Consumes: `AI_PRESETS`, `AiPreset`, `ASK_SLASH` (Task 1).
@@ -1004,12 +1004,12 @@ git commit -m "feat(commands): add quick-action chips and focus requests to AskA
 
 - [ ] **Step 1: Install the direct dependency**
 
-Run: `pnpm --dir frontend add @codemirror/autocomplete`
+Run: `pnpm --dir web add @codemirror/autocomplete`
 Expected: `dependencies: + @codemirror/autocomplete 6.x.x`. It's already a transitive dependency of `codemirror`, but pnpm's strict layout requires a direct dependency in order to import it.
 
 - [ ] **Step 2: Write the failing test**
 
-`frontend/src/features/commands/slashCommands.test.ts`:
+`web/src/features/commands/slashCommands.test.ts`:
 
 ```ts
 import { CompletionContext, type Completion, type CompletionResult } from '@codemirror/autocomplete'
@@ -1110,12 +1110,12 @@ describe('slashCommands', () => {
 
 - [ ] **Step 3: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/commands/slashCommands.test.ts`
+Run: `pnpm --dir web test src/features/commands/slashCommands.test.ts`
 Expected: FAIL with `Failed to resolve import "./slashCommands"`.
 
 - [ ] **Step 4: Write the minimal implementation**
 
-`frontend/src/features/commands/slashCommands.ts`:
+`web/src/features/commands/slashCommands.ts`:
 
 ```ts
 import {
@@ -1171,13 +1171,13 @@ export function slashCommands(onSelect: (selection: SlashSelection) => void): Ex
 
 - [ ] **Step 5: Run the test to confirm it passes**
 
-Run: `pnpm --dir frontend test src/features/commands/slashCommands.test.ts`
+Run: `pnpm --dir web test src/features/commands/slashCommands.test.ts`
 Expected: PASS, `Tests  8 passed (8)`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/src/features/commands/slashCommands.ts frontend/src/features/commands/slashCommands.test.ts
+git add web/package.json web/pnpm-lock.yaml web/src/features/commands/slashCommands.ts web/src/features/commands/slashCommands.test.ts
 git commit -m "feat(commands): add slash command completion source"
 ```
 
@@ -1186,8 +1186,8 @@ git commit -m "feat(commands): add slash command completion source"
 ### Task 6: Slash command handler (wait for the document to sync)
 
 **Files:**
-- Create: `frontend/src/features/commands/useSlashCommandHandler.ts`
-- Test: `frontend/src/features/commands/useSlashCommandHandler.test.tsx`
+- Create: `web/src/features/commands/useSlashCommandHandler.ts`
+- Test: `web/src/features/commands/useSlashCommandHandler.test.tsx`
 
 **Why:** The slash `apply` function deletes `/word` inside CodeMirror. `DocumentProvider.content` only catches up on the next React render. Calling `start()` right away would compute `baseText` from the stale content, which still contains `/fix`. The handler stores the selection and runs it only once `content` equals the post-deletion document.
 
@@ -1197,7 +1197,7 @@ git commit -m "feat(commands): add slash command completion source"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/commands/useSlashCommandHandler.test.tsx`:
+`web/src/features/commands/useSlashCommandHandler.test.tsx`:
 
 ```tsx
 import { act, renderHook } from '@testing-library/react'
@@ -1256,12 +1256,12 @@ describe('useSlashCommandHandler', () => {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/commands/useSlashCommandHandler.test.tsx`
+Run: `pnpm --dir web test src/features/commands/useSlashCommandHandler.test.tsx`
 Expected: FAIL with `Failed to resolve import "./useSlashCommandHandler"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/commands/useSlashCommandHandler.ts`:
+`web/src/features/commands/useSlashCommandHandler.ts`:
 
 ```ts
 import { useCallback, useEffect, useRef, useState } from 'react'
@@ -1296,13 +1296,13 @@ export function useSlashCommandHandler({ content, runPresetAt, onAsk }: Options)
 
 - [ ] **Step 4: Run the test to confirm it passes**
 
-Run: `pnpm --dir frontend test src/features/commands/useSlashCommandHandler.test.tsx`
+Run: `pnpm --dir web test src/features/commands/useSlashCommandHandler.test.tsx`
 Expected: PASS, `Tests  4 passed (4)`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/commands/useSlashCommandHandler.ts frontend/src/features/commands/useSlashCommandHandler.test.tsx
+git add web/src/features/commands/useSlashCommandHandler.ts web/src/features/commands/useSlashCommandHandler.test.tsx
 git commit -m "feat(commands): run slash commands once document state syncs"
 ```
 
@@ -1311,11 +1311,11 @@ git commit -m "feat(commands): run slash commands once document state syncs"
 ### Task 7: Wire commands into the app shell
 
 **Files:**
-- Create: `frontend/src/features/commands/useCommandPaletteShortcut.ts`
-- Create: `frontend/src/features/commands/CommandPaletteButton.tsx`
-- Modify: `frontend/src/features/layout/AppHeader.tsx`
-- Modify: `frontend/src/App.tsx` (`Workspace`)
-- Test: `frontend/src/App.commands.test.tsx`
+- Create: `web/src/features/commands/useCommandPaletteShortcut.ts`
+- Create: `web/src/features/commands/CommandPaletteButton.tsx`
+- Modify: `web/src/features/layout/AppHeader.tsx`
+- Modify: `web/src/App.tsx` (`Workspace`)
+- Test: `web/src/App.commands.test.tsx`
 
 **Interfaces:**
 - Consumes: everything from Tasks 1–6; `Workspace`'s `activeTab` / `onTabChange` props; `useDocument().content`; `MarkdownEditor`'s `extensions?: Extension[]` prop.
@@ -1327,7 +1327,7 @@ git commit -m "feat(commands): run slash commands once document state syncs"
 
 - [ ] **Step 1: Write the failing integration test**
 
-`frontend/src/App.commands.test.tsx`:
+`web/src/App.commands.test.tsx`:
 
 ```tsx
 import { render, screen, waitFor } from '@testing-library/react'
@@ -1426,12 +1426,12 @@ describe('App commands', () => {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/App.commands.test.tsx`
+Run: `pnpm --dir web test src/App.commands.test.tsx`
 Expected: FAIL. Ctrl+K does nothing (`Unable to find an element with the placeholder text of: Type a command or search…`), and there's no "Open command palette" button.
 
 - [ ] **Step 3: Create the shortcut hook and header button**
 
-`frontend/src/features/commands/useCommandPaletteShortcut.ts`:
+`web/src/features/commands/useCommandPaletteShortcut.ts`:
 
 ```ts
 import { useEffect } from 'react'
@@ -1451,7 +1451,7 @@ export function useCommandPaletteShortcut(onToggle: () => void) {
 }
 ```
 
-`frontend/src/features/commands/CommandPaletteButton.tsx`:
+`web/src/features/commands/CommandPaletteButton.tsx`:
 
 ```tsx
 export function shortcutLabel(userAgent: string = navigator.userAgent): string {
@@ -1477,7 +1477,7 @@ export function CommandPaletteButton({ onClick }: { onClick(): void }) {
 
 - [ ] **Step 4: Modify `AppHeader`**
 
-In `frontend/src/features/layout/AppHeader.tsx`:
+In `web/src/features/layout/AppHeader.tsx`:
 
 1. `import { CommandPaletteButton } from '../commands/CommandPaletteButton'`
 2. Replace the inline props type with an exported one and destructure both props:
@@ -1488,7 +1488,7 @@ In `frontend/src/features/layout/AppHeader.tsx`:
    ```
 3. Render `{onOpenCommands && <CommandPaletteButton onClick={onOpenCommands} />}` as the first item in the header's right-hand controls group, before `{children}` (which holds `ModelSelect`).
 
-- [ ] **Step 5: Modify `Workspace` in `frontend/src/App.tsx`**
+- [ ] **Step 5: Modify `Workspace` in `web/src/App.tsx`**
 
 1. Add imports (merge them with existing imports from the same modules):
    ```tsx
@@ -1542,16 +1542,16 @@ In `frontend/src/features/layout/AppHeader.tsx`:
 
 - [ ] **Step 6: Run the integration test and the whole suite**
 
-Run: `pnpm --dir frontend test src/App.commands.test.tsx`
+Run: `pnpm --dir web test src/App.commands.test.tsx`
 Expected: PASS, `Tests  5 passed (5)`.
 
-Run: `pnpm --dir frontend test && pnpm --dir frontend typecheck && pnpm --dir frontend lint`
+Run: `pnpm --dir web test && pnpm --dir web typecheck && pnpm --dir web lint`
 Expected: all tests pass, and typecheck and lint exit 0. If an existing `App.test.tsx` from an earlier phase asserted an exact list of header buttons, add "Open command palette" to it.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/src/features/commands/useCommandPaletteShortcut.ts frontend/src/features/commands/CommandPaletteButton.tsx frontend/src/features/layout/AppHeader.tsx frontend/src/App.tsx frontend/src/App.commands.test.tsx
+git add web/src/features/commands/useCommandPaletteShortcut.ts web/src/features/commands/CommandPaletteButton.tsx web/src/features/layout/AppHeader.tsx web/src/App.tsx web/src/App.commands.test.tsx
 git commit -m "feat(commands): wire command palette, slash commands, and quick actions into the app"
 ```
 
@@ -1560,16 +1560,16 @@ git commit -m "feat(commands): wire command palette, slash commands, and quick a
 ### Task 8: Error boundary
 
 **Files:**
-- Create: `frontend/src/features/layout/ErrorBoundary.tsx`
-- Modify: `frontend/src/App.tsx`
-- Test: `frontend/src/features/layout/ErrorBoundary.test.tsx`
+- Create: `web/src/features/layout/ErrorBoundary.tsx`
+- Modify: `web/src/App.tsx`
+- Test: `web/src/features/layout/ErrorBoundary.test.tsx`
 
 **Interfaces:**
 - Produces: `class ErrorBoundary extends Component<{ children: ReactNode; onReload?: () => void }>`. On a render error it shows `role="alert"` with the heading "Something went wrong", the error message, a note that the document is saved in this browser, and a "Reload" button that calls `onReload` (default: `window.location.reload()`).
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/layout/ErrorBoundary.test.tsx`:
+`web/src/features/layout/ErrorBoundary.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1613,12 +1613,12 @@ describe('ErrorBoundary', () => {
 
 - [ ] **Step 2: Run the test to confirm it fails**
 
-Run: `pnpm --dir frontend test src/features/layout/ErrorBoundary.test.tsx`
+Run: `pnpm --dir web test src/features/layout/ErrorBoundary.test.tsx`
 Expected: FAIL with `Failed to resolve import "./ErrorBoundary"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/layout/ErrorBoundary.tsx`:
+`web/src/features/layout/ErrorBoundary.tsx`:
 
 ```tsx
 import { Component, type ErrorInfo, type ReactNode } from 'react'
@@ -1671,7 +1671,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
 - [ ] **Step 4: Wrap the app**
 
-In `frontend/src/App.tsx`, import `{ ErrorBoundary } from './features/layout/ErrorBoundary'`, and make `<ErrorBoundary>` the outermost element returned by `App`, around `<ThemeProvider>`:
+In `web/src/App.tsx`, import `{ ErrorBoundary } from './features/layout/ErrorBoundary'`, and make `<ErrorBoundary>` the outermost element returned by `App`, around `<ThemeProvider>`:
 
 ```tsx
 <ErrorBoundary>
@@ -1683,13 +1683,13 @@ In `frontend/src/App.tsx`, import `{ ErrorBoundary } from './features/layout/Err
 
 - [ ] **Step 5: Run the tests to confirm they pass**
 
-Run: `pnpm --dir frontend test src/features/layout/ErrorBoundary.test.tsx && pnpm --dir frontend test`
+Run: `pnpm --dir web test src/features/layout/ErrorBoundary.test.tsx && pnpm --dir web test`
 Expected: PASS. All tests pass.
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/src/features/layout/ErrorBoundary.tsx frontend/src/features/layout/ErrorBoundary.test.tsx frontend/src/App.tsx
+git add web/src/features/layout/ErrorBoundary.tsx web/src/features/layout/ErrorBoundary.test.tsx web/src/App.tsx
 git commit -m "feat(layout): add app-wide error boundary"
 ```
 
@@ -1732,23 +1732,23 @@ A collaborative Markdown editor with an AI co-author. Write in the editor, ask t
 
 ```bash
 pnpm install                       # root: installs Husky git hooks
-pnpm --dir frontend install
-cd backend && uv sync && cp .env.example .env   # then edit .env
+pnpm --dir web install
+cd api && uv sync && cp .env.example .env   # then edit .env
 ```
 
 ## Running
 
 ```bash
 # terminal 1 — API on http://localhost:8000
-cd backend && uv run fastapi dev app/main.py
+cd api && uv run fastapi dev app/main.py
 
 # terminal 2 — app on http://localhost:5173 (proxies /api to :8000)
-pnpm --dir frontend dev
+pnpm --dir web dev
 ```
 
 ## Configuration
 
-Backend (`backend/.env`):
+Backend (`api/.env`):
 
 | Variable | Default | Description |
 |---|---|---|
@@ -1760,7 +1760,7 @@ Backend (`backend/.env`):
 | `LLM_MAX_TOKENS` | `64000` | Max output tokens per suggestion |
 | `CORS_ORIGINS` | `["http://localhost:5173"]` | JSON list of allowed origins |
 
-Frontend (`frontend/.env`, optional):
+Frontend (`web/.env`, optional):
 
 | Variable | Default | Description |
 |---|---|---|
@@ -1770,13 +1770,13 @@ Frontend (`frontend/.env`, optional):
 
 | Command | What it does |
 |---|---|
-| `pnpm --dir frontend dev` | Vite dev server |
-| `pnpm --dir frontend build` | Production build |
-| `pnpm --dir frontend test` | Vitest |
-| `pnpm --dir frontend lint` | ESLint |
-| `pnpm --dir frontend typecheck` | TypeScript |
-| `cd backend && uv run pytest` | Backend tests |
-| `cd backend && uv run ruff check . && uv run ruff format --check .` | Backend lint/format |
+| `pnpm --dir web dev` | Vite dev server |
+| `pnpm --dir web build` | Production build |
+| `pnpm --dir web test` | Vitest |
+| `pnpm --dir web lint` | ESLint |
+| `pnpm --dir web typecheck` | TypeScript |
+| `cd api && uv run pytest` | Backend tests |
+| `cd api && uv run ruff check . && uv run ruff format --check .` | Backend lint/format |
 
 Git hooks: pre-commit runs lint-staged (ESLint + Prettier) and ruff; pre-push runs the frontend and backend test suites.
 
@@ -1791,7 +1791,7 @@ Git hooks: pre-commit runs lint-staged (ESLint + Prettier) and ruff; pre-push ru
 ## Architecture
 
 ```
-frontend/ (React 19 + Vite)                 backend/ (FastAPI)
+web/ (React 19 + Vite)                 api/ (FastAPI)
   Editor | Preview | AI Review tabs           GET  /api/health
   DocumentProvider  — content + selection     GET  /api/models
   SuggestionProvider — active AI proposal     POST /api/suggestions  (SSE: delta / done / error)
@@ -1805,15 +1805,15 @@ The model returns only the replacement text for the target; the browser computes
 
 - [ ] **Step 2: Run every automated check**
 
-Run: `pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test && pnpm --dir frontend build`
+Run: `pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test && pnpm --dir web build`
 Expected: lint and typecheck exit 0, all test files pass, and `vite build` prints `✓ built in …`.
 
-Run: `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest`
+Run: `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest`
 Expected: `All checks passed!`, `N files already formatted`, and all tests passed.
 
 - [ ] **Step 3: Manual end-to-end verification**
 
-Start both apps (see README → Running) with a real API key in `backend/.env`, open http://localhost:5173, and check each item. Fix anything that fails before moving on.
+Start both apps (see README → Running) with a real API key in `api/.env`, open http://localhost:5173, and check each item. Fix anything that fails before moving on.
 
 1. A fresh load (clear site data first) shows the welcome document in the Editor tab, with the light theme.
 2. Type text, reload the page: the text persists.

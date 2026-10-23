@@ -21,14 +21,14 @@
 - All interactive controls are keyboard-reachable and have accessible names. Tests query by role/name.
 - No real network calls in tests; frontend tests mock `fetch`.
 - TDD for every task (failing test → minimal implementation → passing test), then a Conventional Commit.
-- Checks: `pnpm --dir frontend lint`, `pnpm --dir frontend typecheck`, `pnpm --dir frontend test`.
+- Checks: `pnpm --dir web lint`, `pnpm --dir web typecheck`, `pnpm --dir web test`.
 
 ## Pre-flight: verify the phase 4 contracts this plan consumes
 
 Run from the repo root:
 
 ```bash
-cd frontend
+cd web
 grep -n "export function useDocument" src/features/document/DocumentProvider.tsx
 grep -n "export function SuggestionProvider" src/features/suggestions/SuggestionProvider.tsx
 grep -n "export function SplitDiffView" src/features/suggestions/SplitDiffView.tsx
@@ -53,16 +53,16 @@ If a name or path differs, use the real one in this plan's imports. Do not renam
 
 | File | Responsibility |
 |---|---|
-| `frontend/src/features/history/types.ts` | Zod schemas, `Version` / `VersionSource` / `VersionInput` types, `MAX_VERSIONS`, storage key |
-| `frontend/src/features/history/versionsReducer.ts` | Pure helpers: `appendVersion`, `versionsReducer`, `trimForQuota`, `versionsForResolution` |
-| `frontend/src/features/history/VersionsProvider.tsx` | Context, load/save, initial version, `record`, `restore`, `useVersions` |
-| `frontend/src/features/history/SuggestionBridge.tsx` | Wraps `SuggestionProvider`; turns resolved suggestions into versions |
-| `frontend/src/features/history/relativeTime.ts` | `formatRelativeTime(timestamp, now)` |
-| `frontend/src/features/history/VersionTimeline.tsx` | Newest-first list of versions, selectable |
-| `frontend/src/features/history/VersionDetail.tsx` | Read-only diff against the previous version + Restore |
-| `frontend/src/features/history/VersionHistory.tsx` | Section: heading, Save snapshot, timeline + detail |
-| `frontend/src/features/history/AiReviewTab.tsx` | `SuggestionPanel` above `VersionHistory` |
-| `frontend/src/App.tsx` | Final provider nesting; review panel → `AiReviewTab` |
+| `web/src/features/history/types.ts` | Zod schemas, `Version` / `VersionSource` / `VersionInput` types, `MAX_VERSIONS`, storage key |
+| `web/src/features/history/versionsReducer.ts` | Pure helpers: `appendVersion`, `versionsReducer`, `trimForQuota`, `versionsForResolution` |
+| `web/src/features/history/VersionsProvider.tsx` | Context, load/save, initial version, `record`, `restore`, `useVersions` |
+| `web/src/features/history/SuggestionBridge.tsx` | Wraps `SuggestionProvider`; turns resolved suggestions into versions |
+| `web/src/features/history/relativeTime.ts` | `formatRelativeTime(timestamp, now)` |
+| `web/src/features/history/VersionTimeline.tsx` | Newest-first list of versions, selectable |
+| `web/src/features/history/VersionDetail.tsx` | Read-only diff against the previous version + Restore |
+| `web/src/features/history/VersionHistory.tsx` | Section: heading, Save snapshot, timeline + detail |
+| `web/src/features/history/AiReviewTab.tsx` | `SuggestionPanel` above `VersionHistory` |
+| `web/src/App.tsx` | Final provider nesting; review panel → `AiReviewTab` |
 
 `SuggestionBridge.tsx`, `relativeTime.ts`, and `VersionHistory.tsx` are additions to the overview's file map; they all live in `features/history/`.
 
@@ -71,10 +71,10 @@ If a name or path differs, use the real one in this plan's imports. Do not renam
 ### Task 1: Version types and pure reducer
 
 **Files:**
-- Create: `frontend/src/features/history/types.ts`
-- Create: `frontend/src/features/history/versionsReducer.ts`
-- Test: `frontend/src/features/history/types.test.ts`
-- Test: `frontend/src/features/history/versionsReducer.test.ts`
+- Create: `web/src/features/history/types.ts`
+- Create: `web/src/features/history/versionsReducer.ts`
+- Test: `web/src/features/history/types.test.ts`
+- Test: `web/src/features/history/versionsReducer.test.ts`
 
 **Interfaces:**
 - Consumes: `ResolvedSuggestion`, `RefineTurn` from `features/suggestions/types.ts` (phase 4).
@@ -92,7 +92,7 @@ If a name or path differs, use the real one in this plan's imports. Do not renam
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/history/types.test.ts`:
+`web/src/features/history/types.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -139,7 +139,7 @@ describe('VersionSchema', () => {
 })
 ```
 
-`frontend/src/features/history/versionsReducer.test.ts`:
+`web/src/features/history/versionsReducer.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -265,12 +265,12 @@ describe('versionsForResolution', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm --dir frontend test src/features/history/types.test.ts src/features/history/versionsReducer.test.ts`
+Run: `pnpm --dir web test src/features/history/types.test.ts src/features/history/versionsReducer.test.ts`
 Expected: FAIL with `Failed to resolve import "./types"` and `Failed to resolve import "./versionsReducer"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/types.ts`:
+`web/src/features/history/types.ts`:
 
 ```ts
 import { z } from 'zod'
@@ -297,7 +297,7 @@ export type Version = z.infer<typeof VersionSchema>
 export type VersionInput = Omit<Version, 'id' | 'createdAt'>
 ```
 
-`frontend/src/features/history/versionsReducer.ts`:
+`web/src/features/history/versionsReducer.ts`:
 
 ```ts
 import type { ResolvedSuggestion } from '../suggestions/types'
@@ -339,13 +339,13 @@ export function versionsForResolution(
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `pnpm --dir frontend test src/features/history/types.test.ts src/features/history/versionsReducer.test.ts`
+Run: `pnpm --dir web test src/features/history/types.test.ts src/features/history/versionsReducer.test.ts`
 Expected: PASS (both files, all tests green).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/types.ts frontend/src/features/history/types.test.ts frontend/src/features/history/versionsReducer.ts frontend/src/features/history/versionsReducer.test.ts
+git add web/src/features/history/types.ts web/src/features/history/types.test.ts web/src/features/history/versionsReducer.ts web/src/features/history/versionsReducer.test.ts
 git commit -m "feat(history): add version schema and pure versions reducer"
 ```
 
@@ -354,8 +354,8 @@ git commit -m "feat(history): add version schema and pure versions reducer"
 ### Task 2: VersionsProvider and useVersions
 
 **Files:**
-- Create: `frontend/src/features/history/VersionsProvider.tsx`
-- Test: `frontend/src/features/history/VersionsProvider.test.tsx`
+- Create: `web/src/features/history/VersionsProvider.tsx`
+- Test: `web/src/features/history/VersionsProvider.test.tsx`
 
 **Interfaces:**
 - Consumes: `loadJson`, `saveJson` (`lib/storage.ts`); `createId` (`lib/id.ts`); `useDocument`, `DocumentProvider` (`features/document/DocumentProvider.tsx`); everything from Task 1.
@@ -366,7 +366,7 @@ git commit -m "feat(history): add version schema and pure versions reducer"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/history/VersionsProvider.test.tsx`:
+`web/src/features/history/VersionsProvider.test.tsx`:
 
 ```tsx
 import { act, render, screen } from '@testing-library/react'
@@ -528,12 +528,12 @@ describe('VersionsProvider', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend test src/features/history/VersionsProvider.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionsProvider.test.tsx`
 Expected: FAIL with `Failed to resolve import "./VersionsProvider"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/VersionsProvider.tsx`:
+`web/src/features/history/VersionsProvider.tsx`:
 
 ```tsx
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react'
@@ -601,13 +601,13 @@ Note: if phase 2's `DocumentProvider` uses `<Context.Provider value>`, match tha
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend test src/features/history/VersionsProvider.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionsProvider.test.tsx`
 Expected: PASS (8 tests). If the first test shows phase 2's `initialContent` instead of `# Hello\n`, then `DocumentProvider` loads in an effect rather than a lazy initializer. Fix it in `DocumentProvider` (lazy `useState(() => loadJson(...))`) and add that change to this commit.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/VersionsProvider.tsx frontend/src/features/history/VersionsProvider.test.tsx
+git add web/src/features/history/VersionsProvider.tsx web/src/features/history/VersionsProvider.test.tsx
 git commit -m "feat(history): add VersionsProvider with persistence and restore"
 ```
 
@@ -616,8 +616,8 @@ git commit -m "feat(history): add VersionsProvider with persistence and restore"
 ### Task 3: SuggestionBridge — record versions when a suggestion resolves
 
 **Files:**
-- Create: `frontend/src/features/history/SuggestionBridge.tsx`
-- Test: `frontend/src/features/history/SuggestionBridge.test.tsx`
+- Create: `web/src/features/history/SuggestionBridge.tsx`
+- Test: `web/src/features/history/SuggestionBridge.test.tsx`
 
 **Interfaces:**
 - Consumes: `SuggestionProvider` (phase 4, props `{ children; onResolved?(r: ResolvedSuggestion): void; onStart?(): void }`); `useVersions` (Task 2); `versionsForResolution` (Task 1).
@@ -625,7 +625,7 @@ git commit -m "feat(history): add VersionsProvider with persistence and restore"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/history/SuggestionBridge.test.tsx`:
+`web/src/features/history/SuggestionBridge.test.tsx`:
 
 ```tsx
 import { act, render, screen } from '@testing-library/react'
@@ -730,12 +730,12 @@ describe('SuggestionBridge', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend test src/features/history/SuggestionBridge.test.tsx`
+Run: `pnpm --dir web test src/features/history/SuggestionBridge.test.tsx`
 Expected: FAIL with `Failed to resolve import "./SuggestionBridge"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/SuggestionBridge.tsx`:
+`web/src/features/history/SuggestionBridge.tsx`:
 
 ```tsx
 import { useCallback, type ReactNode } from 'react'
@@ -770,13 +770,13 @@ export function SuggestionBridge({ children, onStart }: SuggestionBridgeProps) {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend test src/features/history/SuggestionBridge.test.tsx`
+Run: `pnpm --dir web test src/features/history/SuggestionBridge.test.tsx`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/SuggestionBridge.tsx frontend/src/features/history/SuggestionBridge.test.tsx
+git add web/src/features/history/SuggestionBridge.tsx web/src/features/history/SuggestionBridge.test.tsx
 git commit -m "feat(history): record versions when AI suggestions resolve"
 ```
 
@@ -785,10 +785,10 @@ git commit -m "feat(history): record versions when AI suggestions resolve"
 ### Task 4: Relative time helper and VersionTimeline
 
 **Files:**
-- Create: `frontend/src/features/history/relativeTime.ts`
-- Create: `frontend/src/features/history/VersionTimeline.tsx`
-- Test: `frontend/src/features/history/relativeTime.test.ts`
-- Test: `frontend/src/features/history/VersionTimeline.test.tsx`
+- Create: `web/src/features/history/relativeTime.ts`
+- Create: `web/src/features/history/VersionTimeline.tsx`
+- Test: `web/src/features/history/relativeTime.test.ts`
+- Test: `web/src/features/history/VersionTimeline.test.tsx`
 
 **Interfaces:**
 - Consumes: `Version`, `VersionSource` (Task 1).
@@ -798,7 +798,7 @@ git commit -m "feat(history): record versions when AI suggestions resolve"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/history/relativeTime.test.ts`:
+`web/src/features/history/relativeTime.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest'
@@ -821,7 +821,7 @@ describe('formatRelativeTime', () => {
 })
 ```
 
-`frontend/src/features/history/VersionTimeline.test.tsx`:
+`web/src/features/history/VersionTimeline.test.tsx`:
 
 ```tsx
 import { render, screen, within } from '@testing-library/react'
@@ -901,12 +901,12 @@ describe('VersionTimeline', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm --dir frontend test src/features/history/relativeTime.test.ts src/features/history/VersionTimeline.test.tsx`
+Run: `pnpm --dir web test src/features/history/relativeTime.test.ts src/features/history/VersionTimeline.test.tsx`
 Expected: FAIL with `Failed to resolve import "./relativeTime"` and `Failed to resolve import "./VersionTimeline"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/relativeTime.ts`:
+`web/src/features/history/relativeTime.ts`:
 
 ```ts
 const UNITS: Array<[Intl.RelativeTimeFormatUnit, number]> = [
@@ -929,7 +929,7 @@ export function formatRelativeTime(timestamp: number, now: number, locale = 'en'
 }
 ```
 
-`frontend/src/features/history/VersionTimeline.tsx`:
+`web/src/features/history/VersionTimeline.tsx`:
 
 ```tsx
 import { formatRelativeTime } from './relativeTime'
@@ -1011,13 +1011,13 @@ export function VersionTimeline({
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `pnpm --dir frontend test src/features/history/relativeTime.test.ts src/features/history/VersionTimeline.test.tsx`
+Run: `pnpm --dir web test src/features/history/relativeTime.test.ts src/features/history/VersionTimeline.test.tsx`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/relativeTime.ts frontend/src/features/history/relativeTime.test.ts frontend/src/features/history/VersionTimeline.tsx frontend/src/features/history/VersionTimeline.test.tsx
+git add web/src/features/history/relativeTime.ts web/src/features/history/relativeTime.test.ts web/src/features/history/VersionTimeline.tsx web/src/features/history/VersionTimeline.test.tsx
 git commit -m "feat(history): add version timeline with relative timestamps"
 ```
 
@@ -1026,8 +1026,8 @@ git commit -m "feat(history): add version timeline with relative timestamps"
 ### Task 5: VersionDetail — read-only diff and restore
 
 **Files:**
-- Create: `frontend/src/features/history/VersionDetail.tsx`
-- Test: `frontend/src/features/history/VersionDetail.test.tsx`
+- Create: `web/src/features/history/VersionDetail.tsx`
+- Test: `web/src/features/history/VersionDetail.test.tsx`
 
 **Interfaces:**
 - Consumes: `computeSegments` (`features/suggestions/diff.ts`); `SplitDiffView` (`features/suggestions/SplitDiffView.tsx`, `{ segments; readOnly? }`); `Version` (Task 1).
@@ -1035,7 +1035,7 @@ git commit -m "feat(history): add version timeline with relative timestamps"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/history/VersionDetail.test.tsx`:
+`web/src/features/history/VersionDetail.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1104,12 +1104,12 @@ describe('VersionDetail', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend test src/features/history/VersionDetail.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionDetail.test.tsx`
 Expected: FAIL with `Failed to resolve import "./VersionDetail"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/VersionDetail.tsx`:
+`web/src/features/history/VersionDetail.tsx`:
 
 ```tsx
 import { useMemo } from 'react'
@@ -1162,13 +1162,13 @@ export function VersionDetail({ version, previous, isLatest, onRestore }: Versio
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend test src/features/history/VersionDetail.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionDetail.test.tsx`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/VersionDetail.tsx frontend/src/features/history/VersionDetail.test.tsx
+git add web/src/features/history/VersionDetail.tsx web/src/features/history/VersionDetail.test.tsx
 git commit -m "feat(history): show read-only diff between versions with restore"
 ```
 
@@ -1177,8 +1177,8 @@ git commit -m "feat(history): show read-only diff between versions with restore"
 ### Task 6: VersionHistory section with Save snapshot
 
 **Files:**
-- Create: `frontend/src/features/history/VersionHistory.tsx`
-- Test: `frontend/src/features/history/VersionHistory.test.tsx`
+- Create: `web/src/features/history/VersionHistory.tsx`
+- Test: `web/src/features/history/VersionHistory.test.tsx`
 
 **Interfaces:**
 - Consumes: `useVersions` (Task 2), `useDocument` (phase 2), `VersionTimeline` (Task 4), `VersionDetail` (Task 5).
@@ -1186,7 +1186,7 @@ git commit -m "feat(history): show read-only diff between versions with restore"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/history/VersionHistory.test.tsx`:
+`web/src/features/history/VersionHistory.test.tsx`:
 
 ```tsx
 import { render, screen, within } from '@testing-library/react'
@@ -1272,12 +1272,12 @@ describe('VersionHistory', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend test src/features/history/VersionHistory.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionHistory.test.tsx`
 Expected: FAIL with `Failed to resolve import "./VersionHistory"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/history/VersionHistory.tsx`:
+`web/src/features/history/VersionHistory.tsx`:
 
 ```tsx
 import { useState } from 'react'
@@ -1347,13 +1347,13 @@ export function VersionHistory({ getModelLabel }: VersionHistoryProps) {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend test src/features/history/VersionHistory.test.tsx`
+Run: `pnpm --dir web test src/features/history/VersionHistory.test.tsx`
 Expected: PASS (3 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/history/VersionHistory.tsx frontend/src/features/history/VersionHistory.test.tsx
+git add web/src/features/history/VersionHistory.tsx web/src/features/history/VersionHistory.test.tsx
 git commit -m "feat(history): add version history section with snapshots"
 ```
 
@@ -1362,9 +1362,9 @@ git commit -m "feat(history): add version history section with snapshots"
 ### Task 7: AiReviewTab and final App wiring
 
 **Files:**
-- Create: `frontend/src/features/history/AiReviewTab.tsx`
-- Modify: `frontend/src/App.tsx` (provider nesting and the `review` panel)
-- Test: `frontend/src/App.history.test.tsx`
+- Create: `web/src/features/history/AiReviewTab.tsx`
+- Modify: `web/src/App.tsx` (provider nesting and the `review` panel)
+- Test: `web/src/App.history.test.tsx`
 
 **Interfaces:**
 - Consumes: `SuggestionPanel` (phase 4), `useModels` (phase 4), `ModelProvider` (phase 4), `ThemeProvider`, `DocumentProvider`, `TabId` (phase 2), `VersionsProvider` (Task 2), `SuggestionBridge` (Task 3), `VersionHistory` (Task 6).
@@ -1372,7 +1372,7 @@ git commit -m "feat(history): add version history section with snapshots"
 
 - [ ] **Step 1: Write the failing integration test**
 
-`frontend/src/App.history.test.tsx`:
+`web/src/App.history.test.tsx`:
 
 ```tsx
 import { render, screen } from '@testing-library/react'
@@ -1434,12 +1434,12 @@ describe('App version history', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend test src/App.history.test.tsx`
+Run: `pnpm --dir web test src/App.history.test.tsx`
 Expected: FAIL. `Unable to find role="heading" and name "Version history"` (the review tab still renders only `SuggestionPanel`).
 
 - [ ] **Step 3: Create AiReviewTab**
 
-`frontend/src/features/history/AiReviewTab.tsx`:
+`web/src/features/history/AiReviewTab.tsx`:
 
 ```tsx
 import { useCallback } from 'react'
@@ -1465,7 +1465,7 @@ export function AiReviewTab() {
 
 - [ ] **Step 4: Wire App.tsx to the final provider nesting**
 
-In `frontend/src/App.tsx`:
+In `web/src/App.tsx`:
 
 1. Replace the `SuggestionProvider` import with the history imports, and drop the `SuggestionPanel` import:
 
@@ -1502,17 +1502,17 @@ Make sure `useCallback` is imported from `react` alongside `useState`.
 
 - [ ] **Step 5: Run the integration test to verify it passes**
 
-Run: `pnpm --dir frontend test src/App.history.test.tsx`
+Run: `pnpm --dir web test src/App.history.test.tsx`
 Expected: PASS (2 tests).
 
 - [ ] **Step 6: Run the full frontend checks**
 
-Run: `pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test`
+Run: `pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test`
 Expected: lint and typecheck exit 0 with no errors, and every Vitest file passes, including phase 2–4 suites. If an earlier `App` test asserted the review tab contains only `SuggestionPanel`, update that assertion to match the new layout. Do not delete it.
 
 - [ ] **Step 7: Manual smoke check**
 
-Run (two terminals): `cd backend && uv run fastapi dev app/main.py`, then `pnpm --dir frontend dev`. Open http://localhost:5173 and check:
+Run (two terminals): `cd api && uv run fastapi dev app/main.py`, then `pnpm --dir web dev`. Open http://localhost:5173 and check:
 1. AI Review → "Version history" lists "Initial version".
 2. Edit text → Save snapshot → a "Manual / Snapshot" entry appears at the top.
 3. Ask AI for a change → accept a hunk → once resolved, an "AI" entry labelled with the instruction and model appears.
@@ -1522,7 +1522,7 @@ Run (two terminals): `cd backend && uv run fastapi dev app/main.py`, then `pnpm 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add frontend/src/features/history/AiReviewTab.tsx frontend/src/App.tsx frontend/src/App.history.test.tsx
+git add web/src/features/history/AiReviewTab.tsx web/src/App.tsx web/src/App.history.test.tsx
 git commit -m "feat(history): show version history in AI Review tab and wire providers"
 ```
 
@@ -1532,4 +1532,4 @@ git commit -m "feat(history): show version history in AI Review tab and wire pro
 
 - [ ] Spec coverage: versions recorded on AI resolve (Task 3), manual-edit capture before AI versions (Tasks 1 and 3), snapshot (Task 6), timeline newest first with badge/time/model (Task 4), read-only diff vs previous / empty (Task 5), restore disabled on latest (Task 5), persistence with quota fallback (Task 2), `MAX_VERSIONS` trimming (Task 1), final provider nesting (Task 7).
 - [ ] `useVersions` exposes only `versions`, `record`, `restore`.
-- [ ] `pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test` all green.
+- [ ] `pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test` all green.

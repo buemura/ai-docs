@@ -25,13 +25,13 @@
 - Hunk buttons have accessible names `Accept change N` / `Reject change N` (1-based, in document order).
 - No real network in tests. Mock `fetch` with `ReadableStream` bodies (helpers in `src/test/sse.ts`).
 - Phase 2 facts this plan relies on: `TextRange` is exported from `features/document/schema.ts`; `DocumentProvider` and `useDocument` come from `features/document/DocumentProvider.tsx`; `replaceRange` collapses the selection to the end of the inserted text; `AppHeader` renders `children` before `ThemeToggle`; `Tabs` takes `badges`; `App.tsx` default-exports `App` and defines `AppShell`; colors use the `slate` palette. A hook colocated with its provider gets `// eslint-disable-next-line react-refresh/only-export-components -- hook is colocated with its provider`.
-- Commands run from the repo root. Single test files run with `pnpm --dir frontend exec vitest run <path relative to frontend/>`.
+- Commands run from the repo root. Single test files run with `pnpm --dir web exec vitest run <path relative to web/>`.
 - Commit after every task with Conventional Commits.
 
 ## File structure
 
 ```
-frontend/src/
+web/src/
   test/sse.ts                              # fetch/SSE mocking helpers (Task 3)
   test/renderWithAi.tsx                    # provider harness + tiny driver components (Task 7)
   test/setup.ts                            # Modify: default fetch stub (Task 3)
@@ -59,10 +59,10 @@ frontend/src/
 ### Task 1: Suggestion types and diff engine
 
 **Files:**
-- Create: `frontend/src/features/suggestions/types.ts`
-- Create: `frontend/src/features/suggestions/diff.ts`
-- Test: `frontend/src/features/suggestions/diff.test.ts`
-- Modify: `frontend/package.json` (adds `diff`, via pnpm)
+- Create: `web/src/features/suggestions/types.ts`
+- Create: `web/src/features/suggestions/diff.ts`
+- Test: `web/src/features/suggestions/diff.test.ts`
+- Modify: `web/package.json` (adds `diff`, via pnpm)
 
 **Interfaces:**
 - Consumes: `TextRange` from `features/document/schema.ts` (phase 2).
@@ -86,13 +86,13 @@ frontend/src/
 
 - [ ] **Step 1: Add the dependency**
 
-Run: `pnpm --dir frontend add diff`
-Then run: `pnpm --dir frontend list diff`
-Expected: `diff 8.x` (v8 ships its own types). If a version below 8 is installed, also run `pnpm --dir frontend add -D @types/diff`.
+Run: `pnpm --dir web add diff`
+Then run: `pnpm --dir web list diff`
+Expected: `diff 8.x` (v8 ships its own types). If a version below 8 is installed, also run `pnpm --dir web add -D @types/diff`.
 
 - [ ] **Step 2: Write the types**
 
-`frontend/src/features/suggestions/types.ts`:
+`web/src/features/suggestions/types.ts`:
 ```ts
 import type { TextRange } from '../document/schema'
 
@@ -156,7 +156,7 @@ export type ResolvedSuggestion = {
 
 - [ ] **Step 3: Write the failing test**
 
-`frontend/src/features/suggestions/diff.test.ts`:
+`web/src/features/suggestions/diff.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import {
@@ -265,12 +265,12 @@ describe('applySegments / setHunkStatuses / countByStatus', () => {
 
 - [ ] **Step 4: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/diff.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/diff.test.ts`
 Expected: FAIL with `Failed to resolve import "./diff"`.
 
 - [ ] **Step 5: Write the implementation**
 
-`frontend/src/features/suggestions/diff.ts`:
+`web/src/features/suggestions/diff.ts`:
 ```ts
 import { diffLines } from 'diff'
 import type { DiffSegment, Hunk, HunkStatus } from './types'
@@ -361,13 +361,13 @@ export function countByStatus(segments: DiffSegment[]): Record<HunkStatus, numbe
 
 - [ ] **Step 6: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/diff.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/diff.test.ts`
 Expected: PASS (11 tests).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/src/features/suggestions/types.ts frontend/src/features/suggestions/diff.ts frontend/src/features/suggestions/diff.test.ts
+git add web/package.json web/pnpm-lock.yaml web/src/features/suggestions/types.ts web/src/features/suggestions/diff.ts web/src/features/suggestions/diff.test.ts
 git commit -m "feat(frontend): add suggestion types and line-diff hunk engine"
 ```
 
@@ -376,10 +376,10 @@ git commit -m "feat(frontend): add suggestion types and line-diff hunk engine"
 ### Task 2: Proposal normalization, region location, target resolution
 
 **Files:**
-- Create: `frontend/src/features/suggestions/normalize.ts`
-- Create: `frontend/src/features/suggestions/locateRegion.ts`
-- Test: `frontend/src/features/suggestions/normalize.test.ts`
-- Test: `frontend/src/features/suggestions/locateRegion.test.ts`
+- Create: `web/src/features/suggestions/normalize.ts`
+- Create: `web/src/features/suggestions/locateRegion.ts`
+- Test: `web/src/features/suggestions/normalize.test.ts`
+- Test: `web/src/features/suggestions/locateRegion.test.ts`
 
 **Interfaces:**
 - Consumes: `TextRange`, `SuggestionTarget` from `./types` (Task 1).
@@ -392,7 +392,7 @@ git commit -m "feat(frontend): add suggestion types and line-diff hunk engine"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/suggestions/normalize.test.ts`:
+`web/src/features/suggestions/normalize.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { normalizeProposal } from './normalize'
@@ -428,7 +428,7 @@ describe('normalizeProposal', () => {
 })
 ```
 
-`frontend/src/features/suggestions/locateRegion.test.ts`:
+`web/src/features/suggestions/locateRegion.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { locateRegion, resolveTarget } from './locateRegion'
@@ -483,12 +483,12 @@ describe('resolveTarget', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/normalize.test.ts src/features/suggestions/locateRegion.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/normalize.test.ts src/features/suggestions/locateRegion.test.ts`
 Expected: FAIL with `Failed to resolve import "./normalize"` and `Failed to resolve import "./locateRegion"`.
 
 - [ ] **Step 3: Write the implementations**
 
-`frontend/src/features/suggestions/normalize.ts`:
+`web/src/features/suggestions/normalize.ts`:
 ```ts
 const WRAPPING_FENCE = /^\s*```(?:markdown|md)?[ \t]*\n([\s\S]*?)\n?```\s*$/
 
@@ -511,7 +511,7 @@ export function normalizeProposal(proposal: string, baseText: string): string {
 }
 ```
 
-`frontend/src/features/suggestions/locateRegion.ts`:
+`web/src/features/suggestions/locateRegion.ts`:
 ```ts
 import type { SuggestionTarget, TextRange } from './types'
 
@@ -547,13 +547,13 @@ export function resolveTarget(
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/normalize.test.ts src/features/suggestions/locateRegion.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/normalize.test.ts src/features/suggestions/locateRegion.test.ts`
 Expected: PASS (15 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/normalize.ts frontend/src/features/suggestions/normalize.test.ts frontend/src/features/suggestions/locateRegion.ts frontend/src/features/suggestions/locateRegion.test.ts
+git add web/src/features/suggestions/normalize.ts web/src/features/suggestions/normalize.test.ts web/src/features/suggestions/locateRegion.ts web/src/features/suggestions/locateRegion.test.ts
 git commit -m "feat(frontend): add proposal normalization and region location"
 ```
 
@@ -562,11 +562,11 @@ git commit -m "feat(frontend): add proposal normalization and region location"
 ### Task 3: API schemas and SSE parser
 
 **Files:**
-- Create: `frontend/src/features/ai/schemas.ts`
-- Create: `frontend/src/features/ai/sse.ts`
-- Create: `frontend/src/test/sse.ts`
-- Modify: `frontend/src/test/setup.ts` (default fetch stub)
-- Test: `frontend/src/features/ai/sse.test.ts`
+- Create: `web/src/features/ai/schemas.ts`
+- Create: `web/src/features/ai/sse.ts`
+- Create: `web/src/test/sse.ts`
+- Modify: `web/src/test/setup.ts` (default fetch stub)
+- Test: `web/src/features/ai/sse.test.ts`
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
@@ -593,7 +593,7 @@ git commit -m "feat(frontend): add proposal normalization and region location"
 
 - [ ] **Step 1: Write the schemas**
 
-`frontend/src/features/ai/schemas.ts`:
+`web/src/features/ai/schemas.ts`:
 ```ts
 import { z } from 'zod'
 
@@ -631,7 +631,7 @@ export type StreamEvent =
 
 - [ ] **Step 2: Write the test helpers**
 
-`frontend/src/test/sse.ts`:
+`web/src/test/sse.ts`:
 ```ts
 import { vi } from 'vitest'
 import type { ModelsResponse } from '../features/ai/schemas'
@@ -722,7 +722,7 @@ export function suggestionBodies(fetchMock: ReturnType<typeof mockApi>): unknown
 
 - [ ] **Step 3: Stub fetch by default in the test setup**
 
-Append to `frontend/src/test/setup.ts` (keep the existing content). Add `beforeEach` and `vi` to the existing `vitest` import if they aren't already imported:
+Append to `web/src/test/setup.ts` (keep the existing content). Add `beforeEach` and `vi` to the existing `vitest` import if they aren't already imported:
 ```ts
 import { beforeEach, vi } from 'vitest'
 
@@ -742,7 +742,7 @@ If `afterEach` isn't imported in the file yet, add it to the same import.
 
 - [ ] **Step 4: Write the failing parser test**
 
-`frontend/src/features/ai/sse.test.ts`:
+`web/src/features/ai/sse.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { streamOf } from '../../test/sse'
@@ -804,12 +804,12 @@ describe('parseSse', () => {
 
 - [ ] **Step 5: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/sse.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/ai/sse.test.ts`
 Expected: FAIL with `Failed to resolve import "./sse"`.
 
 - [ ] **Step 6: Write the parser**
 
-`frontend/src/features/ai/sse.ts`:
+`web/src/features/ai/sse.ts`:
 ```ts
 export type SseMessage = { event: string; data: string }
 
@@ -865,18 +865,18 @@ export async function* parseSse(stream: ReadableStream<Uint8Array>): AsyncGenera
 
 - [ ] **Step 7: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/sse.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/ai/sse.test.ts`
 Expected: PASS (7 tests).
 
 - [ ] **Step 8: Run the whole suite to confirm the fetch stub breaks nothing**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: all test files PASS.
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add frontend/src/features/ai/schemas.ts frontend/src/features/ai/sse.ts frontend/src/features/ai/sse.test.ts frontend/src/test/sse.ts frontend/src/test/setup.ts
+git add web/src/features/ai/schemas.ts web/src/features/ai/sse.ts web/src/features/ai/sse.test.ts web/src/test/sse.ts web/src/test/setup.ts
 git commit -m "feat(frontend): add AI API schemas and SSE stream parser"
 ```
 
@@ -885,8 +885,8 @@ git commit -m "feat(frontend): add AI API schemas and SSE stream parser"
 ### Task 4: API client (`fetchModels`, `streamSuggestion`)
 
 **Files:**
-- Create: `frontend/src/features/ai/api.ts`
-- Test: `frontend/src/features/ai/api.test.ts`
+- Create: `web/src/features/ai/api.ts`
+- Test: `web/src/features/ai/api.test.ts`
 
 **Interfaces:**
 - Consumes: `env` from `src/env.ts` (phase 1); schemas and `parseSse` (Task 3).
@@ -900,7 +900,7 @@ git commit -m "feat(frontend): add AI API schemas and SSE stream parser"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/ai/api.test.ts`:
+`web/src/features/ai/api.test.ts`:
 ```ts
 import { describe, expect, it, vi } from 'vitest'
 import { MODELS_RESPONSE, jsonResponse, sseFrame, sseResponse } from '../../test/sse'
@@ -1033,12 +1033,12 @@ describe('streamSuggestion', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/api.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/ai/api.test.ts`
 Expected: FAIL with `Failed to resolve import "./api"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/ai/api.ts`:
+`web/src/features/ai/api.ts`:
 ```ts
 import { env } from '../../env'
 import {
@@ -1161,13 +1161,13 @@ async function readErrorMessage(response: Response): Promise<string> {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/api.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/ai/api.test.ts`
 Expected: PASS (12 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/ai/api.ts frontend/src/features/ai/api.test.ts
+git add web/src/features/ai/api.ts web/src/features/ai/api.test.ts
 git commit -m "feat(frontend): add models and streaming suggestion API client"
 ```
 
@@ -1176,11 +1176,11 @@ git commit -m "feat(frontend): add models and streaming suggestion API client"
 ### Task 5: ModelProvider, ModelSelect, header wiring
 
 **Files:**
-- Create: `frontend/src/features/ai/ModelProvider.tsx`
-- Create: `frontend/src/features/ai/ModelSelect.tsx`
-- Test: `frontend/src/features/ai/ModelProvider.test.tsx`
-- Test: `frontend/src/features/ai/ModelSelect.test.tsx`
-- Modify: `frontend/src/App.tsx` (wrap in `ModelProvider`, pass `<ModelSelect />` to `AppHeader`)
+- Create: `web/src/features/ai/ModelProvider.tsx`
+- Create: `web/src/features/ai/ModelSelect.tsx`
+- Test: `web/src/features/ai/ModelProvider.test.tsx`
+- Test: `web/src/features/ai/ModelSelect.test.tsx`
+- Modify: `web/src/App.tsx` (wrap in `ModelProvider`, pass `<ModelSelect />` to `AppHeader`)
 
 **Interfaces:**
 - Consumes: `fetchModels` (Task 4), `loadJson`/`saveJson` (phase 2), `AppHeader` children slot (phase 2).
@@ -1196,7 +1196,7 @@ git commit -m "feat(frontend): add models and streaming suggestion API client"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/ai/ModelProvider.test.tsx`:
+`web/src/features/ai/ModelProvider.test.tsx`:
 ```tsx
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -1269,7 +1269,7 @@ describe('ModelProvider', () => {
 })
 ```
 
-`frontend/src/features/ai/ModelSelect.test.tsx`:
+`web/src/features/ai/ModelSelect.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -1319,12 +1319,12 @@ describe('ModelSelect', () => {
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/ModelProvider.test.tsx src/features/ai/ModelSelect.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/ai/ModelProvider.test.tsx src/features/ai/ModelSelect.test.tsx`
 Expected: FAIL with `Failed to resolve import "./ModelProvider"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/ai/ModelProvider.tsx`:
+`web/src/features/ai/ModelProvider.tsx`:
 ```tsx
 import {
   createContext,
@@ -1411,7 +1411,7 @@ export function useModels(): ModelsContextValue {
 }
 ```
 
-`frontend/src/features/ai/ModelSelect.tsx`:
+`web/src/features/ai/ModelSelect.tsx`:
 ```tsx
 import { useModels } from './ModelProvider'
 
@@ -1448,12 +1448,12 @@ export function ModelSelect() {
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `pnpm --dir frontend exec vitest run src/features/ai/ModelProvider.test.tsx src/features/ai/ModelSelect.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/ai/ModelProvider.test.tsx src/features/ai/ModelSelect.test.tsx`
 Expected: PASS (8 tests).
 
 - [ ] **Step 5: Wire into the app**
 
-In `frontend/src/App.tsx` (phase 2 version):
+In `web/src/App.tsx` (phase 2 version):
 1. Add the imports:
    ```tsx
    import { ModelProvider } from './features/ai/ModelProvider'
@@ -1482,13 +1482,13 @@ In `frontend/src/App.tsx` (phase 2 version):
 
 - [ ] **Step 6: Run the full suite**
 
-Run: `pnpm --dir frontend test`
+Run: `pnpm --dir web test`
 Expected: all test files PASS. The phase 2 `App.test.tsx` still passes: fetch is stubbed to reject, so the select shows "AI unavailable".
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/src/features/ai/ModelProvider.tsx frontend/src/features/ai/ModelProvider.test.tsx frontend/src/features/ai/ModelSelect.tsx frontend/src/features/ai/ModelSelect.test.tsx frontend/src/App.tsx
+git add web/src/features/ai/ModelProvider.tsx web/src/features/ai/ModelProvider.test.tsx web/src/features/ai/ModelSelect.tsx web/src/features/ai/ModelSelect.test.tsx web/src/App.tsx
 git commit -m "feat(frontend): add model catalog provider and header model dropdown"
 ```
 
@@ -1497,8 +1497,8 @@ git commit -m "feat(frontend): add model catalog provider and header model dropd
 ### Task 6: Suggestion reducer
 
 **Files:**
-- Create: `frontend/src/features/suggestions/suggestionReducer.ts`
-- Test: `frontend/src/features/suggestions/suggestionReducer.test.ts`
+- Create: `web/src/features/suggestions/suggestionReducer.ts`
+- Test: `web/src/features/suggestions/suggestionReducer.test.ts`
 
 **Interfaces:**
 - Consumes: `computeSegments`, `setHunkStatuses`, `countByStatus` (Task 1); `normalizeProposal` (Task 2); types (Task 1).
@@ -1520,7 +1520,7 @@ git commit -m "feat(frontend): add model catalog provider and header model dropd
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/suggestions/suggestionReducer.test.ts`:
+`web/src/features/suggestions/suggestionReducer.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { getHunks } from './diff'
@@ -1692,12 +1692,12 @@ describe('suggestionReducer', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/suggestionReducer.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/suggestionReducer.test.ts`
 Expected: FAIL with `Failed to resolve import "./suggestionReducer"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/suggestions/suggestionReducer.ts`:
+`web/src/features/suggestions/suggestionReducer.ts`:
 ```ts
 import { computeSegments, countByStatus, setHunkStatuses } from './diff'
 import { normalizeProposal } from './normalize'
@@ -1817,13 +1817,13 @@ export function suggestionReducer(state: SuggestionState, action: SuggestionActi
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/suggestionReducer.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/suggestionReducer.test.ts`
 Expected: PASS (11 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/suggestionReducer.ts frontend/src/features/suggestions/suggestionReducer.test.ts
+git add web/src/features/suggestions/suggestionReducer.ts web/src/features/suggestions/suggestionReducer.test.ts
 git commit -m "feat(frontend): add pure suggestion state machine"
 ```
 
@@ -1832,9 +1832,9 @@ git commit -m "feat(frontend): add pure suggestion state machine"
 ### Task 7: SuggestionProvider and useSuggestion
 
 **Files:**
-- Create: `frontend/src/features/suggestions/SuggestionProvider.tsx`
-- Create: `frontend/src/test/renderWithAi.tsx`
-- Test: `frontend/src/features/suggestions/SuggestionProvider.test.tsx`
+- Create: `web/src/features/suggestions/SuggestionProvider.tsx`
+- Create: `web/src/test/renderWithAi.tsx`
+- Test: `web/src/features/suggestions/SuggestionProvider.test.tsx`
 
 **Interfaces:**
 - Consumes: `useDocument` (phase 2), `useModels` (Task 5), `streamSuggestion` (Task 4), `createId` (phase 2), diff helpers (Task 1), `locateRegion`/`resolveTarget` (Task 2), reducer (Task 6).
@@ -1870,7 +1870,7 @@ git commit -m "feat(frontend): add pure suggestion state machine"
 
 - [ ] **Step 1: Write the test harness**
 
-`frontend/src/test/renderWithAi.tsx`:
+`web/src/test/renderWithAi.tsx`:
 ```tsx
 import { render } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -1932,7 +1932,7 @@ export function SelectRange({ from, to }: { from: number; to: number }) {
 
 - [ ] **Step 2: Write the failing test**
 
-`frontend/src/features/suggestions/SuggestionProvider.test.tsx`:
+`web/src/features/suggestions/SuggestionProvider.test.tsx`:
 ```tsx
 import { act, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
@@ -2213,12 +2213,12 @@ describe('SuggestionProvider — review', () => {
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SuggestionProvider.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SuggestionProvider.test.tsx`
 Expected: FAIL with `Failed to resolve import "../features/suggestions/SuggestionProvider"` (from `renderWithAi.tsx`).
 
 - [ ] **Step 4: Write the implementation**
 
-`frontend/src/features/suggestions/SuggestionProvider.tsx`:
+`web/src/features/suggestions/SuggestionProvider.tsx`:
 ```tsx
 import {
   createContext,
@@ -2510,18 +2510,18 @@ export function useSuggestion(): SuggestionContextValue {
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SuggestionProvider.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SuggestionProvider.test.tsx`
 Expected: PASS (14 tests).
 
 - [ ] **Step 6: Lint the new files**
 
-Run: `pnpm --dir frontend lint`
+Run: `pnpm --dir web lint`
 Expected: 0 errors. If `react-refresh/only-export-components` warns about `src/test/renderWithAi.tsx`, add `/* eslint-disable react-refresh/only-export-components -- test helpers */` as the file's first line.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/SuggestionProvider.tsx frontend/src/features/suggestions/SuggestionProvider.test.tsx frontend/src/test/renderWithAi.tsx
+git add web/src/features/suggestions/SuggestionProvider.tsx web/src/features/suggestions/SuggestionProvider.test.tsx web/src/test/renderWithAi.tsx
 git commit -m "feat(frontend): add SuggestionProvider streaming, review and refine flow"
 ```
 
@@ -2530,8 +2530,8 @@ git commit -m "feat(frontend): add SuggestionProvider streaming, review and refi
 ### Task 8: SplitDiffView
 
 **Files:**
-- Create: `frontend/src/features/suggestions/SplitDiffView.tsx`
-- Test: `frontend/src/features/suggestions/SplitDiffView.test.tsx`
+- Create: `web/src/features/suggestions/SplitDiffView.tsx`
+- Test: `web/src/features/suggestions/SplitDiffView.test.tsx`
 
 **Interfaces:**
 - Consumes: `splitLines`, `computeSegments` (tests), `setHunkStatuses` (tests) from Task 1; `diffWordsWithSpace` from `diff`.
@@ -2549,7 +2549,7 @@ git commit -m "feat(frontend): add SuggestionProvider streaming, review and refi
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/suggestions/SplitDiffView.test.tsx`:
+`web/src/features/suggestions/SplitDiffView.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -2627,12 +2627,12 @@ describe('SplitDiffView', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SplitDiffView.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SplitDiffView.test.tsx`
 Expected: FAIL with `Failed to resolve import "./SplitDiffView"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/suggestions/SplitDiffView.tsx`:
+`web/src/features/suggestions/SplitDiffView.tsx`:
 ```tsx
 import { diffWordsWithSpace } from 'diff'
 import { useState, type ReactNode } from 'react'
@@ -2876,13 +2876,13 @@ export function SplitDiffView({
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SplitDiffView.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SplitDiffView.test.tsx`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/SplitDiffView.tsx frontend/src/features/suggestions/SplitDiffView.test.tsx
+git add web/src/features/suggestions/SplitDiffView.tsx web/src/features/suggestions/SplitDiffView.test.tsx
 git commit -m "feat(frontend): add split-pane diff view with per-hunk actions"
 ```
 
@@ -2891,8 +2891,8 @@ git commit -m "feat(frontend): add split-pane diff view with per-hunk actions"
 ### Task 9: AskAiBar
 
 **Files:**
-- Create: `frontend/src/features/suggestions/AskAiBar.tsx`
-- Test: `frontend/src/features/suggestions/AskAiBar.test.tsx`
+- Create: `web/src/features/suggestions/AskAiBar.tsx`
+- Test: `web/src/features/suggestions/AskAiBar.test.tsx`
 
 **Interfaces:**
 - Consumes: `useDocument` (phase 2), `useModels` (Task 5), `useSuggestion` (Task 7), test harness (Task 7).
@@ -2900,7 +2900,7 @@ git commit -m "feat(frontend): add split-pane diff view with per-hunk actions"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/suggestions/AskAiBar.test.tsx`:
+`web/src/features/suggestions/AskAiBar.test.tsx`:
 ```tsx
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -2996,12 +2996,12 @@ describe('AskAiBar', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/AskAiBar.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/AskAiBar.test.tsx`
 Expected: FAIL with `Failed to resolve import "./AskAiBar"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/suggestions/AskAiBar.tsx`:
+`web/src/features/suggestions/AskAiBar.tsx`:
 ```tsx
 import { useState, type FormEvent, type KeyboardEvent } from 'react'
 import { useModels } from '../ai/ModelProvider'
@@ -3079,13 +3079,13 @@ export function AskAiBar() {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/AskAiBar.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/AskAiBar.test.tsx`
 Expected: PASS (5 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/AskAiBar.tsx frontend/src/features/suggestions/AskAiBar.test.tsx
+git add web/src/features/suggestions/AskAiBar.tsx web/src/features/suggestions/AskAiBar.test.tsx
 git commit -m "feat(frontend): add Ask AI instruction bar"
 ```
 
@@ -3094,8 +3094,8 @@ git commit -m "feat(frontend): add Ask AI instruction bar"
 ### Task 10: SuggestionPanel
 
 **Files:**
-- Create: `frontend/src/features/suggestions/SuggestionPanel.tsx`
-- Test: `frontend/src/features/suggestions/SuggestionPanel.test.tsx`
+- Create: `web/src/features/suggestions/SuggestionPanel.tsx`
+- Test: `web/src/features/suggestions/SuggestionPanel.test.tsx`
 
 **Interfaces:**
 - Consumes: `useSuggestion` (Task 7), `SplitDiffView` (Task 8), `countByStatus`/`getHunks` (Task 1), test harness (Task 7).
@@ -3109,7 +3109,7 @@ git commit -m "feat(frontend): add Ask AI instruction bar"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/suggestions/SuggestionPanel.test.tsx`:
+`web/src/features/suggestions/SuggestionPanel.test.tsx`:
 ```tsx
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -3268,12 +3268,12 @@ describe('SuggestionPanel', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SuggestionPanel.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SuggestionPanel.test.tsx`
 Expected: FAIL with `Failed to resolve import "./SuggestionPanel"`.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/features/suggestions/SuggestionPanel.tsx`:
+`web/src/features/suggestions/SuggestionPanel.tsx`:
 ```tsx
 import { useState, type FormEvent } from 'react'
 import { countByStatus, getHunks } from './diff'
@@ -3451,13 +3451,13 @@ function ReviewView({ suggestion }: { suggestion: Suggestion }) {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/suggestions/SuggestionPanel.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/suggestions/SuggestionPanel.test.tsx`
 Expected: PASS (7 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/suggestions/SuggestionPanel.tsx frontend/src/features/suggestions/SuggestionPanel.test.tsx
+git add web/src/features/suggestions/SuggestionPanel.tsx web/src/features/suggestions/SuggestionPanel.test.tsx
 git commit -m "feat(frontend): add AI Review suggestion panel"
 ```
 
@@ -3466,9 +3466,9 @@ git commit -m "feat(frontend): add AI Review suggestion panel"
 ### Task 11: Wire suggestions into the app
 
 **Files:**
-- Modify: `frontend/src/App.tsx` (replace its content)
-- Modify: `frontend/src/App.test.tsx` (replace the placeholder test)
-- Test: `frontend/src/App.suggestions.test.tsx`
+- Modify: `web/src/App.tsx` (replace its content)
+- Modify: `web/src/App.test.tsx` (replace the placeholder test)
+- Test: `web/src/App.suggestions.test.tsx`
 
 **Interfaces:**
 - Consumes: everything above plus phase 2's `Tabs`, `AppHeader`, `MarkdownEditor`, `MarkdownPreview`, `useTheme`.
@@ -3476,7 +3476,7 @@ git commit -m "feat(frontend): add AI Review suggestion panel"
 
 - [ ] **Step 1: Write the failing integration test**
 
-`frontend/src/App.suggestions.test.tsx`:
+`web/src/App.suggestions.test.tsx`:
 ```tsx
 import { screen, render, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -3523,12 +3523,12 @@ describe('App AI suggestions', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/App.suggestions.test.tsx`
+Run: `pnpm --dir web exec vitest run src/App.suggestions.test.tsx`
 Expected: FAIL with `Unable to find an accessible element with the role "textbox" and name "AI instruction"`.
 
 - [ ] **Step 3: Replace `App.tsx`**
 
-`frontend/src/App.tsx`:
+`web/src/App.tsx`:
 ```tsx
 import { useState } from 'react'
 import { ModelProvider } from './features/ai/ModelProvider'
@@ -3616,7 +3616,7 @@ If phase 2's `App.tsx` uses different wrapper classes (e.g. around `MarkdownEdit
 
 - [ ] **Step 4: Update the phase 2 placeholder test**
 
-In `frontend/src/App.test.tsx`, replace the `it('shows the AI Review placeholder', …)` test with:
+In `web/src/App.test.tsx`, replace the `it('shows the AI Review placeholder', …)` test with:
 ```tsx
   it('shows the empty AI Review panel', async () => {
     const user = userEvent.setup()
@@ -3628,20 +3628,20 @@ In `frontend/src/App.test.tsx`, replace the `it('shows the AI Review placeholder
 
 - [ ] **Step 5: Run the app tests**
 
-Run: `pnpm --dir frontend exec vitest run src/App.test.tsx src/App.suggestions.test.tsx`
+Run: `pnpm --dir web exec vitest run src/App.test.tsx src/App.suggestions.test.tsx`
 Expected: PASS (5 tests).
 
 - [ ] **Step 6: Run all frontend checks**
 
 Run:
 ```bash
-pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test && pnpm --dir frontend build
+pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test && pnpm --dir web build
 ```
 Expected: lint 0 errors, typecheck exits 0, all test files pass, and the Vite build prints `✓ built in …`.
 
 - [ ] **Step 7: Manual end-to-end check with the real backend**
 
-In one terminal: `cd backend && uv run fastapi dev app/main.py` (needs `ANTHROPIC_API_KEY` in `backend/.env`). In another: `pnpm --dir frontend dev`. Open http://localhost:5173 and verify:
+In one terminal: `cd api && uv run fastapi dev app/main.py` (needs `ANTHROPIC_API_KEY` in `api/.env`). In another: `pnpm --dir web dev`. Open http://localhost:5173 and verify:
 1. The header dropdown lists Claude Sonnet 5.5 (selected) and Claude Haiku 5.5. Switching models survives a reload.
 2. With nothing selected, the chip says "Whole document". Select a paragraph and it says "Selection".
 3. Type "make this more concise" and press Enter. The app switches to AI Review, text streams in, and Stop works.
@@ -3654,7 +3654,7 @@ In one terminal: `cd backend && uv run fastapi dev app/main.py` (needs `ANTHROPI
 - [ ] **Step 8: Commit**
 
 ```bash
-git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/App.suggestions.test.tsx
+git add web/src/App.tsx web/src/App.test.tsx web/src/App.suggestions.test.tsx
 git commit -m "feat(frontend): wire AI suggestions, review tab and model picker into the app"
 ```
 

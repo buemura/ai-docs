@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Python 3.13; dependencies managed with `uv` from inside `backend/`.
+- Python 3.13; dependencies managed with `uv` from inside `api/`.
 - No real network calls in tests. Anthropic is tested with an injected fake client; OpenRouter with `httpx.MockTransport`; endpoints with a `FakeProvider` through `app.dependency_overrides[get_provider]`.
 - Logical model IDs: `claude-sonnet-5-5` (default, label `Claude Sonnet 5.5`) and `claude-haiku-5-5` (label `Claude Haiku 5.5`), in that order.
 - Env vars: `LLM_PROVIDER` (`anthropic` | `openrouter`, default `anthropic`), `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, `LLM_DEFAULT_MODEL` (default `claude-sonnet-5-5`, must be a catalog ID), `LLM_EFFORT` (`low` | `medium` | `high`, default `low`), `LLM_MAX_TOKENS` (default `64000`).
@@ -27,17 +27,17 @@
 
 ## Assumed from Phase 1
 
-- `backend/pyproject.toml` (uv project) with `fastapi[standard]`, `pydantic-settings`, dev deps `pytest`, `pytest-asyncio`, `ruff`, and `[tool.pytest.ini_options] asyncio_mode = "auto"`.
-- `backend/app/main.py` exposes `create_app() -> FastAPI` (CORS from settings, includes `app.api.health.router` under prefix `/api`) and a module-level `app = create_app()`.
-- `backend/app/config.py` has `Settings(BaseSettings)` with `cors_origins: list[str]` and `model_config = SettingsConfigDict(env_file=".env", extra="ignore")`, plus `get_settings()` decorated with `@lru_cache`.
-- `backend/app/api/__init__.py` exists.
+- `api/pyproject.toml` (uv project) with `fastapi[standard]`, `pydantic-settings`, dev deps `pytest`, `pytest-asyncio`, `ruff`, and `[tool.pytest.ini_options] asyncio_mode = "auto"`.
+- `api/app/main.py` exposes `create_app() -> FastAPI` (CORS from settings, includes `app.api.health.router` under prefix `/api`) and a module-level `app = create_app()`.
+- `api/app/config.py` has `Settings(BaseSettings)` with `cors_origins: list[str]` and `model_config = SettingsConfigDict(env_file=".env", extra="ignore")`, plus `get_settings()` decorated with `@lru_cache`.
+- `api/app/api/__init__.py` exists.
 
 If any of these differ, adapt the import lines only — do not change the contracts in this plan.
 
 ## File Structure
 
 ```
-backend/
+api/
   .env.example                       # modify: LLM vars
   app/
     main.py                          # modify: include models + suggestions routers, ProviderConfigError handler
@@ -81,11 +81,11 @@ backend/
 ### Task 1: LLM core types, catalog, and provider Protocol
 
 **Files:**
-- Create: `backend/app/llm/__init__.py`
-- Create: `backend/app/llm/types.py`
-- Create: `backend/app/llm/catalog.py`
-- Create: `backend/app/llm/base.py`
-- Test: `backend/tests/test_llm_core.py`
+- Create: `api/app/llm/__init__.py`
+- Create: `api/app/llm/types.py`
+- Create: `api/app/llm/catalog.py`
+- Create: `api/app/llm/base.py`
+- Test: `api/tests/test_llm_core.py`
 
 **Interfaces:**
 - Consumes: nothing.
@@ -96,7 +96,7 @@ backend/
 
 - [ ] **Step 1: Write the failing test**
 
-`backend/tests/test_llm_core.py`:
+`api/tests/test_llm_core.py`:
 
 ```python
 from app.llm.catalog import MODELS, get_model
@@ -154,19 +154,19 @@ def test_completion_request_holds_messages() -> None:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_llm_core.py -v`
+Run: `cd api && uv run pytest tests/test_llm_core.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.llm'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-`backend/app/llm/__init__.py`:
+`api/app/llm/__init__.py`:
 
 ```python
 ```
 
 (empty file)
 
-`backend/app/llm/types.py`:
+`api/app/llm/types.py`:
 
 ```python
 from dataclasses import dataclass
@@ -226,7 +226,7 @@ class ModelInfo:
     label: str
 ```
 
-`backend/app/llm/catalog.py`:
+`api/app/llm/catalog.py`:
 
 ```python
 from app.llm.types import ModelInfo
@@ -243,7 +243,7 @@ def get_model(model_id: str) -> ModelInfo | None:
     return _MODELS_BY_ID.get(model_id)
 ```
 
-`backend/app/llm/base.py`:
+`api/app/llm/base.py`:
 
 ```python
 from collections.abc import AsyncIterator
@@ -266,14 +266,14 @@ class LLMProvider(Protocol):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_llm_core.py -v`
+Run: `cd api && uv run pytest tests/test_llm_core.py -v`
 Expected: PASS (6 passed)
 
 - [ ] **Step 5: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/llm backend/tests/test_llm_core.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/llm api/tests/test_llm_core.py
 git commit -m "feat(backend): add LLM core types, model catalog and provider protocol"
 ```
 
@@ -282,8 +282,8 @@ git commit -m "feat(backend): add LLM core types, model catalog and provider pro
 ### Task 2: LLM settings
 
 **Files:**
-- Modify: `backend/app/config.py`
-- Test: `backend/tests/test_llm_config.py`
+- Modify: `api/app/config.py`
+- Test: `api/tests/test_llm_config.py`
 
 **Interfaces:**
 - Consumes: `app.llm.catalog.get_model`.
@@ -291,7 +291,7 @@ git commit -m "feat(backend): add LLM core types, model catalog and provider pro
 
 - [ ] **Step 1: Write the failing test**
 
-`backend/tests/test_llm_config.py`:
+`api/tests/test_llm_config.py`:
 
 ```python
 import pytest
@@ -365,12 +365,12 @@ def test_missing_api_key_is_allowed_at_load_time() -> None:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_llm_config.py -v`
+Run: `cd api && uv run pytest tests/test_llm_config.py -v`
 Expected: FAIL with `AttributeError: 'Settings' object has no attribute 'llm_provider'` (and validation tests failing with `DID NOT RAISE`)
 
 - [ ] **Step 3: Write minimal implementation**
 
-Replace `backend/app/config.py` with the version below. Keep phase 1's `cors_origins` field and default exactly as they were.
+Replace `api/app/config.py` with the version below. Keep phase 1's `cors_origins` field and default exactly as they were.
 
 ```python
 from functools import lru_cache
@@ -412,14 +412,14 @@ def get_settings() -> Settings:
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `cd backend && uv run pytest -v`
+Run: `cd api && uv run pytest -v`
 Expected: PASS — all tests, including phase 1's health/config tests and the 6 new ones in `test_llm_config.py`.
 
 - [ ] **Step 5: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/config.py backend/tests/test_llm_config.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/config.py api/tests/test_llm_config.py
 git commit -m "feat(backend): add LLM provider settings"
 ```
 
@@ -428,10 +428,10 @@ git commit -m "feat(backend): add LLM provider settings"
 ### Task 3: Suggestion request schemas with UTF-16 offset validation
 
 **Files:**
-- Create: `backend/app/suggestions/__init__.py`
-- Create: `backend/app/suggestions/utf16.py`
-- Create: `backend/app/suggestions/schemas.py`
-- Test: `backend/tests/test_suggestion_schemas.py`
+- Create: `api/app/suggestions/__init__.py`
+- Create: `api/app/suggestions/utf16.py`
+- Create: `api/app/suggestions/schemas.py`
+- Test: `api/tests/test_suggestion_schemas.py`
 
 **Interfaces:**
 - Consumes: nothing.
@@ -441,7 +441,7 @@ git commit -m "feat(backend): add LLM provider settings"
 
 - [ ] **Step 1: Write the failing test**
 
-`backend/tests/test_suggestion_schemas.py`:
+`api/tests/test_suggestion_schemas.py`:
 
 ```python
 import pytest
@@ -550,14 +550,14 @@ class TestSuggestionRequest:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_suggestion_schemas.py -v`
+Run: `cd api && uv run pytest tests/test_suggestion_schemas.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.suggestions'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-`backend/app/suggestions/__init__.py`: empty file.
+`api/app/suggestions/__init__.py`: empty file.
 
-`backend/app/suggestions/utf16.py`:
+`api/app/suggestions/utf16.py`:
 
 ```python
 """Helpers for offsets measured in UTF-16 code units (what JavaScript strings use)."""
@@ -579,7 +579,7 @@ def utf16_slice(text: str, start: int, end: int) -> str:
         raise ValueError("selection splits a character") from exc
 ```
 
-`backend/app/suggestions/schemas.py`:
+`api/app/suggestions/schemas.py`:
 
 ```python
 from typing import Self
@@ -642,14 +642,14 @@ class SuggestionRequest(BaseModel):
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_suggestion_schemas.py -v`
+Run: `cd api && uv run pytest tests/test_suggestion_schemas.py -v`
 Expected: PASS (19 passed)
 
 - [ ] **Step 5: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/suggestions backend/tests/test_suggestion_schemas.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/suggestions api/tests/test_suggestion_schemas.py
 git commit -m "feat(backend): add suggestion request schemas with UTF-16 selection validation"
 ```
 
@@ -658,8 +658,8 @@ git commit -m "feat(backend): add suggestion request schemas with UTF-16 selecti
 ### Task 4: Prompt builder
 
 **Files:**
-- Create: `backend/app/suggestions/prompt.py`
-- Test: `backend/tests/test_prompt.py`
+- Create: `api/app/suggestions/prompt.py`
+- Test: `api/tests/test_prompt.py`
 
 **Interfaces:**
 - Consumes: `SuggestionRequest`, `RefineTurn` (Task 3); `utf16_len`, `utf16_slice` (Task 3); `ChatMessage`, `CompletionRequest` (Task 1).
@@ -671,7 +671,7 @@ Message layout (from the overview's prompt contract):
 
 - [ ] **Step 1: Write the failing test**
 
-`backend/tests/test_prompt.py`:
+`api/tests/test_prompt.py`:
 
 ```python
 from app.suggestions.prompt import (
@@ -774,12 +774,12 @@ def test_refine_history_builds_alternating_turns() -> None:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_prompt.py -v`
+Run: `cd api && uv run pytest tests/test_prompt.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.suggestions.prompt'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-`backend/app/suggestions/prompt.py`:
+`api/app/suggestions/prompt.py`:
 
 ```python
 from app.llm.types import ChatMessage, CompletionRequest
@@ -855,14 +855,14 @@ def build_completion_request(
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_prompt.py -v`
+Run: `cd api && uv run pytest tests/test_prompt.py -v`
 Expected: PASS (7 passed)
 
 - [ ] **Step 5: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/suggestions/prompt.py backend/tests/test_prompt.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/suggestions/prompt.py api/tests/test_prompt.py
 git commit -m "feat(backend): build completion requests from suggestion requests"
 ```
 
@@ -871,9 +871,9 @@ git commit -m "feat(backend): build completion requests from suggestion requests
 ### Task 5: Anthropic provider
 
 **Files:**
-- Modify: `backend/pyproject.toml` (via `uv add anthropic`)
-- Create: `backend/app/llm/anthropic_provider.py`
-- Test: `backend/tests/test_anthropic_provider.py`
+- Modify: `api/pyproject.toml` (via `uv add anthropic`)
+- Create: `api/app/llm/anthropic_provider.py`
+- Test: `api/tests/test_anthropic_provider.py`
 
 **Interfaces:**
 - Consumes: `CompletionRequest`, `TextDelta`, `StreamDone`, `ProviderError`, `StreamEvent` (Task 1); `Effort` (Task 2).
@@ -882,7 +882,7 @@ git commit -m "feat(backend): build completion requests from suggestion requests
 - [ ] **Step 1: Add the SDK and check its signature**
 
 ```bash
-cd backend && uv add anthropic
+cd api && uv add anthropic
 uv run python -c "import inspect; from anthropic.resources.beta.messages import AsyncMessages; p = inspect.signature(AsyncMessages.stream).parameters; print('fallbacks' in p, 'output_config' in p, 'betas' in p)"
 ```
 
@@ -890,7 +890,7 @@ Expected: `True True True`. If `fallbacks` or `output_config` prints `False`, ru
 
 - [ ] **Step 2: Write the failing test**
 
-`backend/tests/test_anthropic_provider.py`:
+`api/tests/test_anthropic_provider.py`:
 
 ```python
 from types import SimpleNamespace
@@ -1086,12 +1086,12 @@ async def test_unknown_model_is_bad_request_without_calling_the_api() -> None:
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_anthropic_provider.py -v`
+Run: `cd api && uv run pytest tests/test_anthropic_provider.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.llm.anthropic_provider'`
 
 - [ ] **Step 4: Write minimal implementation**
 
-`backend/app/llm/anthropic_provider.py`:
+`api/app/llm/anthropic_provider.py`:
 
 ```python
 from collections.abc import AsyncIterator
@@ -1187,14 +1187,14 @@ class AnthropicProvider:
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_anthropic_provider.py -v`
+Run: `cd api && uv run pytest tests/test_anthropic_provider.py -v`
 Expected: PASS (12 passed)
 
 - [ ] **Step 6: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/pyproject.toml backend/uv.lock backend/app/llm/anthropic_provider.py backend/tests/test_anthropic_provider.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/pyproject.toml api/uv.lock api/app/llm/anthropic_provider.py api/tests/test_anthropic_provider.py
 git commit -m "feat(backend): add Anthropic streaming provider"
 ```
 
@@ -1203,9 +1203,9 @@ git commit -m "feat(backend): add Anthropic streaming provider"
 ### Task 6: OpenRouter provider
 
 **Files:**
-- Modify: `backend/pyproject.toml` (via `uv add httpx`)
-- Create: `backend/app/llm/openrouter_provider.py`
-- Test: `backend/tests/test_openrouter_provider.py`
+- Modify: `api/pyproject.toml` (via `uv add httpx`)
+- Create: `api/app/llm/openrouter_provider.py`
+- Test: `api/tests/test_openrouter_provider.py`
 
 **Interfaces:**
 - Consumes: `CompletionRequest`, `TextDelta`, `StreamDone`, `ProviderError`, `StreamEvent` (Task 1).
@@ -1214,14 +1214,14 @@ git commit -m "feat(backend): add Anthropic streaming provider"
 - [ ] **Step 1: Add httpx and verify model slugs**
 
 ```bash
-cd backend && uv add httpx
+cd api && uv add httpx
 ```
 
 Open https://openrouter.ai/models, search "claude sonnet 5.5" and "claude haiku 5.5", and note the exact slugs. If they differ from `anthropic/claude-sonnet-5.5` / `anthropic/claude-haiku-5.5`, use the real slugs in `MODEL_SLUGS` (Step 4) and in the payload assertion in Step 2.
 
 - [ ] **Step 2: Write the failing test**
 
-`backend/tests/test_openrouter_provider.py`:
+`api/tests/test_openrouter_provider.py`:
 
 ```python
 import json
@@ -1422,12 +1422,12 @@ async def test_unknown_model_is_bad_request() -> None:
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_openrouter_provider.py -v`
+Run: `cd api && uv run pytest tests/test_openrouter_provider.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.llm.openrouter_provider'`
 
 - [ ] **Step 4: Write minimal implementation**
 
-`backend/app/llm/openrouter_provider.py`:
+`api/app/llm/openrouter_provider.py`:
 
 ```python
 import json
@@ -1555,14 +1555,14 @@ class OpenRouterProvider:
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_openrouter_provider.py -v`
+Run: `cd api && uv run pytest tests/test_openrouter_provider.py -v`
 Expected: PASS (14 passed)
 
 - [ ] **Step 6: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/pyproject.toml backend/uv.lock backend/app/llm/openrouter_provider.py backend/tests/test_openrouter_provider.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/pyproject.toml api/uv.lock api/app/llm/openrouter_provider.py api/tests/test_openrouter_provider.py
 git commit -m "feat(backend): add OpenRouter streaming provider"
 ```
 
@@ -1571,8 +1571,8 @@ git commit -m "feat(backend): add OpenRouter streaming provider"
 ### Task 7: Provider factory
 
 **Files:**
-- Create: `backend/app/llm/factory.py`
-- Test: `backend/tests/test_factory.py`
+- Create: `api/app/llm/factory.py`
+- Test: `api/tests/test_factory.py`
 
 **Interfaces:**
 - Consumes: `Settings`, `get_settings` (Task 2); `AnthropicProvider` (Task 5); `OpenRouterProvider` (Task 6); `LLMProvider` (Task 1).
@@ -1580,7 +1580,7 @@ git commit -m "feat(backend): add OpenRouter streaming provider"
 
 - [ ] **Step 1: Write the failing test**
 
-`backend/tests/test_factory.py`:
+`api/tests/test_factory.py`:
 
 ```python
 from collections.abc import Iterator
@@ -1652,12 +1652,12 @@ def test_get_provider_reads_settings_and_caches(
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_factory.py -v`
+Run: `cd api && uv run pytest tests/test_factory.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.llm.factory'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-`backend/app/llm/factory.py`:
+`api/app/llm/factory.py`:
 
 ```python
 from functools import lru_cache
@@ -1700,14 +1700,14 @@ def get_provider() -> LLMProvider:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `cd backend && uv run pytest tests/test_factory.py -v`
+Run: `cd api && uv run pytest tests/test_factory.py -v`
 Expected: PASS (5 passed)
 
 - [ ] **Step 5: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/llm/factory.py backend/tests/test_factory.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/llm/factory.py api/tests/test_factory.py
 git commit -m "feat(backend): select LLM provider from settings"
 ```
 
@@ -1716,11 +1716,11 @@ git commit -m "feat(backend): select LLM provider from settings"
 ### Task 8: FakeProvider, API test fixtures, and `GET /api/models`
 
 **Files:**
-- Create: `backend/tests/fakes.py`
-- Modify (or create if phase 1 did not): `backend/tests/conftest.py`
-- Create: `backend/app/api/models.py`
-- Modify: `backend/app/main.py`
-- Test: `backend/tests/test_models_api.py`
+- Create: `api/tests/fakes.py`
+- Modify (or create if phase 1 did not): `api/tests/conftest.py`
+- Create: `api/app/api/models.py`
+- Modify: `api/app/main.py`
+- Test: `api/tests/test_models_api.py`
 
 **Interfaces:**
 - Consumes: `MODELS` (Task 1), `Settings` / `get_settings` (Task 2), `get_provider` (Task 7), `create_app` (phase 1).
@@ -1731,7 +1731,7 @@ git commit -m "feat(backend): select LLM provider from settings"
 
 - [ ] **Step 1: Write the fake provider and fixtures**
 
-`backend/tests/fakes.py`:
+`api/tests/fakes.py`:
 
 ```python
 from collections.abc import AsyncIterator, Sequence
@@ -1774,7 +1774,7 @@ class FakeProvider:
         yield StreamDone(self._stop_reason)
 ```
 
-Add to `backend/tests/conftest.py` (keep any phase 1 fixtures already there):
+Add to `api/tests/conftest.py` (keep any phase 1 fixtures already there):
 
 ```python
 from collections.abc import Iterator
@@ -1809,11 +1809,11 @@ def api_client(
         yield client
 ```
 
-If `from tests.fakes import FakeProvider` fails with `ModuleNotFoundError: No module named 'tests'`, create an empty `backend/tests/__init__.py` (or add `pythonpath = ["."]` to `[tool.pytest.ini_options]`).
+If `from tests.fakes import FakeProvider` fails with `ModuleNotFoundError: No module named 'tests'`, create an empty `api/tests/__init__.py` (or add `pythonpath = ["."]` to `[tool.pytest.ini_options]`).
 
 - [ ] **Step 2: Write the failing test**
 
-`backend/tests/test_models_api.py`:
+`api/tests/test_models_api.py`:
 
 ```python
 from fastapi.testclient import TestClient
@@ -1854,12 +1854,12 @@ def test_models_endpoint_works_without_api_key(api_client: TestClient) -> None:
 
 - [ ] **Step 3: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_models_api.py -v`
+Run: `cd api && uv run pytest tests/test_models_api.py -v`
 Expected: FAIL — `assert 404 == 200`
 
 - [ ] **Step 4: Write minimal implementation**
 
-`backend/app/api/models.py`:
+`api/app/api/models.py`:
 
 ```python
 from typing import Annotated
@@ -1893,7 +1893,7 @@ def list_models(settings: Annotated[Settings, Depends(get_settings)]) -> ModelsR
     )
 ```
 
-In `backend/app/main.py`, import the router and include it next to the health router inside `create_app()`:
+In `api/app/main.py`, import the router and include it next to the health router inside `create_app()`:
 
 ```python
 from app.api import health, models
@@ -1904,15 +1904,15 @@ from app.api import health, models
 
 - [ ] **Step 5: Run tests to verify they pass**
 
-Run: `cd backend && uv run pytest -v`
+Run: `cd api && uv run pytest -v`
 Expected: PASS — all tests, including the 3 in `test_models_api.py`.
 
 - [ ] **Step 6: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/api/models.py backend/app/main.py backend/tests/fakes.py backend/tests/conftest.py backend/tests/test_models_api.py
-git add -A backend/tests/__init__.py 2>/dev/null || true
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/api/models.py api/app/main.py api/tests/fakes.py api/tests/conftest.py api/tests/test_models_api.py
+git add -A api/tests/__init__.py 2>/dev/null || true
 git commit -m "feat(backend): add GET /api/models and fake provider fixtures"
 ```
 
@@ -1921,11 +1921,11 @@ git commit -m "feat(backend): add GET /api/models and fake provider fixtures"
 ### Task 9: SSE formatting and streaming `POST /api/suggestions`
 
 **Files:**
-- Create: `backend/app/suggestions/sse.py`
-- Create: `backend/app/api/suggestions.py`
-- Modify: `backend/app/main.py`
-- Test: `backend/tests/test_sse.py`
-- Test: `backend/tests/test_suggestions_api.py`
+- Create: `api/app/suggestions/sse.py`
+- Create: `api/app/api/suggestions.py`
+- Modify: `api/app/main.py`
+- Test: `api/tests/test_sse.py`
+- Test: `api/tests/test_suggestions_api.py`
 
 **Interfaces:**
 - Consumes: `SuggestionRequest` (Task 3), `build_completion_request`, `SYSTEM_PROMPT` (Task 4), `get_model` (Task 1), `TextDelta`, `StreamDone`, `ProviderError` (Task 1), `LLMProvider` (Task 1), `get_provider`, `ProviderConfigError` (Task 7), `Settings`, `get_settings` (Task 2), fixtures from Task 8.
@@ -1935,7 +1935,7 @@ git commit -m "feat(backend): add GET /api/models and fake provider fixtures"
 
 - [ ] **Step 1: Write the failing SSE formatter test**
 
-`backend/tests/test_sse.py`:
+`api/tests/test_sse.py`:
 
 ```python
 import json
@@ -1966,12 +1966,12 @@ def test_keeps_non_ascii_text_readable() -> None:
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_sse.py -v`
+Run: `cd api && uv run pytest tests/test_sse.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'app.suggestions.sse'`
 
 - [ ] **Step 3: Implement the formatter**
 
-`backend/app/suggestions/sse.py`:
+`api/app/suggestions/sse.py`:
 
 ```python
 import json
@@ -1982,12 +1982,12 @@ def format_sse(event: str, data: dict[str, object]) -> str:
     return f"event: {event}\ndata: {payload}\n\n"
 ```
 
-Run: `cd backend && uv run pytest tests/test_sse.py -v`
+Run: `cd api && uv run pytest tests/test_sse.py -v`
 Expected: PASS (3 passed)
 
 - [ ] **Step 4: Write the failing endpoint test**
 
-`backend/tests/test_suggestions_api.py`:
+`api/tests/test_suggestions_api.py`:
 
 ```python
 import json
@@ -2139,12 +2139,12 @@ def test_missing_provider_config_returns_503(api_client: TestClient) -> None:
 
 - [ ] **Step 5: Run test to verify it fails**
 
-Run: `cd backend && uv run pytest tests/test_suggestions_api.py -v`
+Run: `cd api && uv run pytest tests/test_suggestions_api.py -v`
 Expected: FAIL — `assert 404 == 200` (route not registered)
 
 - [ ] **Step 6: Implement the endpoint**
 
-`backend/app/api/suggestions.py`:
+`api/app/api/suggestions.py`:
 
 ```python
 import asyncio
@@ -2228,7 +2228,7 @@ async def _event_stream(
             await aclose()
 ```
 
-In `backend/app/main.py`, include the router and register the config-error handler inside `create_app()`:
+In `api/app/main.py`, include the router and register the config-error handler inside `create_app()`:
 
 ```python
 from fastapi import FastAPI, Request
@@ -2249,14 +2249,14 @@ from app.llm.factory import ProviderConfigError
 
 - [ ] **Step 7: Run tests to verify they pass**
 
-Run: `cd backend && uv run pytest -v`
+Run: `cd api && uv run pytest -v`
 Expected: PASS — all tests, including 3 in `test_sse.py` and 8 in `test_suggestions_api.py`.
 
 - [ ] **Step 8: Lint and commit**
 
 ```bash
-cd backend && uv run ruff check . && uv run ruff format .
-cd .. && git add backend/app/suggestions/sse.py backend/app/api/suggestions.py backend/app/main.py backend/tests/test_sse.py backend/tests/test_suggestions_api.py
+cd api && uv run ruff check . && uv run ruff format .
+cd .. && git add api/app/suggestions/sse.py api/app/api/suggestions.py api/app/main.py api/tests/test_sse.py api/tests/test_suggestions_api.py
 git commit -m "feat(backend): stream AI suggestions over SSE"
 ```
 
@@ -2265,13 +2265,13 @@ git commit -m "feat(backend): stream AI suggestions over SSE"
 ### Task 10: Environment example, full verification, and manual smoke test
 
 **Files:**
-- Modify: `backend/.env.example`
+- Modify: `api/.env.example`
 
 **Interfaces:**
 - Consumes: everything above.
 - Produces: documented env configuration; a verified running endpoint.
 
-- [ ] **Step 1: Update `backend/.env.example`**
+- [ ] **Step 1: Update `api/.env.example`**
 
 Replace the file with (keep phase 1's `CORS_ORIGINS` line):
 
@@ -2298,13 +2298,13 @@ LLM_MAX_TOKENS=64000
 
 - [ ] **Step 2: Run the full backend check**
 
-Run: `cd backend && uv run ruff check . && uv run ruff format --check . && uv run pytest`
+Run: `cd api && uv run ruff check . && uv run ruff format --check . && uv run pytest`
 Expected: ruff reports `All checks passed!`, format check reports files already formatted, pytest reports all tests passed (phase 1 tests plus the 83 added in this phase) with 0 failures.
 
 - [ ] **Step 3: Check the missing-key path manually**
 
 ```bash
-cd backend && LLM_PROVIDER=anthropic ANTHROPIC_API_KEY= uv run fastapi dev app/main.py --port 8000
+cd api && LLM_PROVIDER=anthropic ANTHROPIC_API_KEY= uv run fastapi dev app/main.py --port 8000
 # in another terminal:
 curl -s http://localhost:8000/api/models
 curl -s -X POST http://localhost:8000/api/suggestions -H 'content-type: application/json' \
@@ -2316,7 +2316,7 @@ Expected: `/api/models` returns the catalog JSON; the POST returns `{"detail":"A
 - [ ] **Step 4 (optional, needs a real key — costs a few cents): Live streaming smoke test**
 
 ```bash
-cd backend && cp -n .env.example .env   # then set ANTHROPIC_API_KEY in .env
+cd api && cp -n .env.example .env   # then set ANTHROPIC_API_KEY in .env
 uv run fastapi dev app/main.py --port 8000
 # in another terminal:
 curl -N -X POST http://localhost:8000/api/suggestions -H 'content-type: application/json' \
@@ -2328,7 +2328,7 @@ Expected: several `event: delta` frames arriving incrementally, then `event: don
 - [ ] **Step 5: Commit**
 
 ```bash
-git add backend/.env.example
+git add api/.env.example
 git commit -m "docs(backend): document LLM environment variables"
 ```
 

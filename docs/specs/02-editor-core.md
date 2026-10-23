@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Node 24, pnpm. Run all frontend commands from the repo root with `pnpm --dir frontend …`.
+- Node 24, pnpm. Run all frontend commands from the repo root with `pnpm --dir web …`.
 - TypeScript strict. No `any`.
 - localStorage keys: `ai-docs:document` → `{ content: string; updatedAt: number }`, `ai-docs:theme` → `"light" | "dark"`. Every read is validated with Zod and never throws.
 - Theme defaults to `light`. Dark mode adds the class `dark` on `document.documentElement` (Tailwind v4 class-based dark variant, set up in phase 1).
@@ -26,9 +26,9 @@
 
 ## Assumptions about phase 1 output
 
-- `frontend/` exists with Vite + React 19 + TS, and the scripts `lint`, `typecheck`, `test` (`vitest run`), `build`, `dev`.
-- `frontend/src/index.css` imports Tailwind, registers `@plugin "@tailwindcss/typography";`, and declares `@custom-variant dark (&:where(.dark, .dark *));`.
-- `frontend/src/test/setup.ts` is registered in Vitest `setupFiles`. It imports `@testing-library/jest-dom/vitest` and clears `localStorage` after each test.
+- `web/` exists with Vite + React 19 + TS, and the scripts `lint`, `typecheck`, `test` (`vitest run`), `build`, `dev`.
+- `web/src/index.css` imports Tailwind, registers `@plugin "@tailwindcss/typography";`, and declares `@custom-variant dark (&:where(.dark, .dark *));`.
+- `web/src/test/setup.ts` is registered in Vitest `setupFiles`. It imports `@testing-library/jest-dom/vitest` and clears `localStorage` after each test.
 - `zod` is already a dependency (used by `src/env.ts`).
 
 If any of these is missing, fix it in phase 1 before starting.
@@ -36,7 +36,7 @@ If any of these is missing, fix it in phase 1 before starting.
 ## File structure (this phase)
 
 ```
-frontend/src/
+web/src/
   lib/storage.ts            + storage.test.ts          loadJson / saveJson
   lib/download.ts           + download.test.ts         downloadTextFile
   lib/id.ts                 + id.test.ts               createId
@@ -62,8 +62,8 @@ frontend/src/
 ### Task 1: Storage, download and id utilities
 
 **Files:**
-- Create: `frontend/src/lib/storage.ts`, `frontend/src/lib/download.ts`, `frontend/src/lib/id.ts`
-- Test: `frontend/src/lib/storage.test.ts`, `frontend/src/lib/download.test.ts`, `frontend/src/lib/id.test.ts`
+- Create: `web/src/lib/storage.ts`, `web/src/lib/download.ts`, `web/src/lib/id.ts`
+- Test: `web/src/lib/storage.test.ts`, `web/src/lib/download.test.ts`, `web/src/lib/id.test.ts`
 
 **Interfaces:**
 - Consumes: `zod` (phase 1).
@@ -75,7 +75,7 @@ frontend/src/
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/lib/storage.test.ts`:
+`web/src/lib/storage.test.ts`:
 ```ts
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
@@ -131,7 +131,7 @@ describe('saveJson', () => {
 })
 ```
 
-`frontend/src/lib/download.test.ts`:
+`web/src/lib/download.test.ts`:
 ```ts
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { downloadTextFile } from './download'
@@ -182,7 +182,7 @@ describe('downloadTextFile', () => {
 })
 ```
 
-`frontend/src/lib/id.test.ts`:
+`web/src/lib/id.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { createId } from './id'
@@ -199,12 +199,12 @@ describe('createId', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm --dir frontend exec vitest run src/lib`
+Run: `pnpm --dir web exec vitest run src/lib`
 Expected: FAIL. Each file reports `Failed to resolve import "./storage"` (or `./download`, `./id`).
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/lib/storage.ts`:
+`web/src/lib/storage.ts`:
 ```ts
 import type { z } from 'zod'
 
@@ -229,7 +229,7 @@ export function saveJson(key: string, value: unknown): boolean {
 }
 ```
 
-`frontend/src/lib/download.ts`:
+`web/src/lib/download.ts`:
 ```ts
 export function downloadTextFile(
   filename: string,
@@ -249,7 +249,7 @@ export function downloadTextFile(
 }
 ```
 
-`frontend/src/lib/id.ts`:
+`web/src/lib/id.ts`:
 ```ts
 export function createId(): string {
   return crypto.randomUUID()
@@ -258,13 +258,13 @@ export function createId(): string {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `pnpm --dir frontend exec vitest run src/lib`
+Run: `pnpm --dir web exec vitest run src/lib`
 Expected: PASS (3 files, 10 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/lib
+git add web/src/lib
 git commit -m "feat(frontend): add storage, download and id utilities"
 ```
 
@@ -273,8 +273,8 @@ git commit -m "feat(frontend): add storage, download and id utilities"
 ### Task 2: Theme (pure helpers, provider, toggle)
 
 **Files:**
-- Create: `frontend/src/features/theme/theme.ts`, `frontend/src/features/theme/ThemeProvider.tsx`, `frontend/src/features/theme/ThemeToggle.tsx`
-- Test: `frontend/src/features/theme/theme.test.ts`, `frontend/src/features/theme/ThemeProvider.test.tsx`, `frontend/src/features/theme/ThemeToggle.test.tsx`
+- Create: `web/src/features/theme/theme.ts`, `web/src/features/theme/ThemeProvider.tsx`, `web/src/features/theme/ThemeToggle.tsx`
+- Test: `web/src/features/theme/theme.test.ts`, `web/src/features/theme/ThemeProvider.test.tsx`, `web/src/features/theme/ThemeToggle.test.tsx`
 
 **Interfaces:**
 - Consumes: `loadJson`, `saveJson` from `src/lib/storage.ts` (Task 1).
@@ -285,7 +285,7 @@ git commit -m "feat(frontend): add storage, download and id utilities"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/theme/theme.test.ts`:
+`web/src/features/theme/theme.test.ts`:
 ```ts
 import { afterEach, describe, expect, it } from 'vitest'
 import { applyTheme, DEFAULT_THEME, loadTheme, nextTheme, THEME_STORAGE_KEY } from './theme'
@@ -327,7 +327,7 @@ describe('theme helpers', () => {
 })
 ```
 
-`frontend/src/features/theme/ThemeProvider.test.tsx`:
+`web/src/features/theme/ThemeProvider.test.tsx`:
 ```tsx
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -377,7 +377,7 @@ describe('ThemeProvider', () => {
 })
 ```
 
-`frontend/src/features/theme/ThemeToggle.test.tsx`:
+`web/src/features/theme/ThemeToggle.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -407,12 +407,12 @@ describe('ThemeToggle', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm --dir frontend exec vitest run src/features/theme`
+Run: `pnpm --dir web exec vitest run src/features/theme`
 Expected: FAIL with `Failed to resolve import "./theme"` / `"./ThemeProvider"` / `"./ThemeToggle"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/theme/theme.ts`:
+`web/src/features/theme/theme.ts`:
 ```ts
 import { z } from 'zod'
 import { loadJson } from '../../lib/storage'
@@ -437,7 +437,7 @@ export function applyTheme(theme: Theme, root: HTMLElement = document.documentEl
 }
 ```
 
-`frontend/src/features/theme/ThemeProvider.tsx`:
+`web/src/features/theme/ThemeProvider.tsx`:
 ```tsx
 import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
 import { saveJson } from '../../lib/storage'
@@ -475,7 +475,7 @@ export function useTheme(): ThemeContextValue {
 }
 ```
 
-`frontend/src/features/theme/ThemeToggle.tsx`:
+`web/src/features/theme/ThemeToggle.tsx`:
 ```tsx
 import { useTheme } from './ThemeProvider'
 
@@ -498,13 +498,13 @@ export function ThemeToggle() {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `pnpm --dir frontend exec vitest run src/features/theme`
+Run: `pnpm --dir web exec vitest run src/features/theme`
 Expected: PASS (3 files, 11 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/theme
+git add web/src/features/theme
 git commit -m "feat(frontend): add light/dark theme provider and toggle"
 ```
 
@@ -513,8 +513,8 @@ git commit -m "feat(frontend): add light/dark theme provider and toggle"
 ### Task 3: Document schema, welcome content and export filename
 
 **Files:**
-- Create: `frontend/src/features/document/schema.ts`, `frontend/src/features/document/initialContent.ts`, `frontend/src/features/document/exportFilename.ts`
-- Test: `frontend/src/features/document/exportFilename.test.ts`
+- Create: `web/src/features/document/schema.ts`, `web/src/features/document/initialContent.ts`, `web/src/features/document/exportFilename.ts`
+- Test: `web/src/features/document/exportFilename.test.ts`
 
 **Interfaces:**
 - Consumes: `zod`.
@@ -525,7 +525,7 @@ git commit -m "feat(frontend): add light/dark theme provider and toggle"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/document/exportFilename.test.ts`:
+`web/src/features/document/exportFilename.test.ts`:
 ```ts
 import { describe, expect, it } from 'vitest'
 import { exportFilename } from './exportFilename'
@@ -562,12 +562,12 @@ describe('exportFilename', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/exportFilename.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/document/exportFilename.test.ts`
 Expected: FAIL with `Failed to resolve import "./exportFilename"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/document/schema.ts`:
+`web/src/features/document/schema.ts`:
 ```ts
 import { z } from 'zod'
 
@@ -584,7 +584,7 @@ export const storedDocumentSchema = z.object({
 export type StoredDocument = z.infer<typeof storedDocumentSchema>
 ```
 
-`frontend/src/features/document/initialContent.ts`:
+`web/src/features/document/initialContent.ts`:
 ```ts
 export const initialContent = `# Welcome to AI Docs
 
@@ -613,7 +613,7 @@ const coAuthor = 'always in your control'
 `
 ```
 
-`frontend/src/features/document/exportFilename.ts`:
+`web/src/features/document/exportFilename.ts`:
 ```ts
 const MAX_SLUG_LENGTH = 80
 const H1_PATTERN = /^#[ \t]+(.+?)[ \t#]*$/m
@@ -638,13 +638,13 @@ export function exportFilename(content: string): string {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/exportFilename.test.ts`
+Run: `pnpm --dir web exec vitest run src/features/document/exportFilename.test.ts`
 Expected: PASS (11 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/document
+git add web/src/features/document
 git commit -m "feat(frontend): add document schema, welcome content and export filename"
 ```
 
@@ -653,8 +653,8 @@ git commit -m "feat(frontend): add document schema, welcome content and export f
 ### Task 4: DocumentProvider with selection, replaceRange and autosave
 
 **Files:**
-- Create: `frontend/src/features/document/DocumentProvider.tsx`
-- Test: `frontend/src/features/document/DocumentProvider.test.tsx`
+- Create: `web/src/features/document/DocumentProvider.tsx`
+- Test: `web/src/features/document/DocumentProvider.test.tsx`
 
 **Interfaces:**
 - Consumes: `loadJson`, `saveJson` (Task 1); `TextRange`, `DOCUMENT_STORAGE_KEY`, `storedDocumentSchema`, `initialContent` (Task 3).
@@ -674,7 +674,7 @@ git commit -m "feat(frontend): add document schema, welcome content and export f
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/document/DocumentProvider.test.tsx`:
+`web/src/features/document/DocumentProvider.test.tsx`:
 ```tsx
 import { act, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -796,12 +796,12 @@ describe('DocumentProvider', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/DocumentProvider.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/document/DocumentProvider.test.tsx`
 Expected: FAIL with `Failed to resolve import "./DocumentProvider"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/document/DocumentProvider.tsx`:
+`web/src/features/document/DocumentProvider.tsx`:
 ```tsx
 import {
   createContext,
@@ -917,13 +917,13 @@ export function useDocument(): DocumentContextValue {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/DocumentProvider.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/document/DocumentProvider.test.tsx`
 Expected: PASS (11 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/document/DocumentProvider.tsx frontend/src/features/document/DocumentProvider.test.tsx
+git add web/src/features/document/DocumentProvider.tsx web/src/features/document/DocumentProvider.test.tsx
 git commit -m "feat(frontend): add DocumentProvider with selection and debounced autosave"
 ```
 
@@ -932,8 +932,8 @@ git commit -m "feat(frontend): add DocumentProvider with selection and debounced
 ### Task 5: ExportButton
 
 **Files:**
-- Create: `frontend/src/features/document/ExportButton.tsx`
-- Test: `frontend/src/features/document/ExportButton.test.tsx`
+- Create: `web/src/features/document/ExportButton.tsx`
+- Test: `web/src/features/document/ExportButton.test.tsx`
 
 **Interfaces:**
 - Consumes: `useDocument` (Task 4), `exportFilename` (Task 3), `downloadTextFile` (Task 1).
@@ -941,7 +941,7 @@ git commit -m "feat(frontend): add DocumentProvider with selection and debounced
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/features/document/ExportButton.test.tsx`:
+`web/src/features/document/ExportButton.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -973,12 +973,12 @@ describe('ExportButton', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/ExportButton.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/document/ExportButton.test.tsx`
 Expected: FAIL with `Failed to resolve import "./ExportButton"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/document/ExportButton.tsx`:
+`web/src/features/document/ExportButton.tsx`:
 ```tsx
 import { downloadTextFile } from '../../lib/download'
 import { useDocument } from './DocumentProvider'
@@ -1000,13 +1000,13 @@ export function ExportButton() {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/document/ExportButton.test.tsx`
+Run: `pnpm --dir web exec vitest run src/features/document/ExportButton.test.tsx`
 Expected: PASS (1 test).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/document/ExportButton.tsx frontend/src/features/document/ExportButton.test.tsx
+git add web/src/features/document/ExportButton.tsx web/src/features/document/ExportButton.test.tsx
 git commit -m "feat(frontend): add Markdown export button"
 ```
 
@@ -1015,10 +1015,10 @@ git commit -m "feat(frontend): add Markdown export button"
 ### Task 6: MarkdownEditor (CodeMirror 6 wrapper)
 
 **Files:**
-- Create: `frontend/src/features/editor/MarkdownEditor.tsx`
-- Modify: `frontend/src/test/setup.ts` (append the jsdom polyfills CodeMirror needs)
-- Modify: `frontend/package.json` (dependencies, via pnpm)
-- Test: `frontend/src/features/editor/MarkdownEditor.test.tsx`
+- Create: `web/src/features/editor/MarkdownEditor.tsx`
+- Modify: `web/src/test/setup.ts` (append the jsdom polyfills CodeMirror needs)
+- Modify: `web/package.json` (dependencies, via pnpm)
+- Test: `web/src/features/editor/MarkdownEditor.test.tsx`
 
 **Interfaces:**
 - Consumes: `TextRange` from `features/document/schema.ts` (Task 3).
@@ -1042,13 +1042,13 @@ git commit -m "feat(frontend): add Markdown export button"
 
 Run:
 ```bash
-pnpm --dir frontend add codemirror @codemirror/state @codemirror/view @codemirror/lang-markdown @codemirror/language-data @codemirror/theme-one-dark
+pnpm --dir web add codemirror @codemirror/state @codemirror/view @codemirror/lang-markdown @codemirror/language-data @codemirror/theme-one-dark
 ```
-Expected: `dependencies` in `frontend/package.json` now lists all six packages.
+Expected: `dependencies` in `web/package.json` now lists all six packages.
 
 - [ ] **Step 2: Add the jsdom polyfills CodeMirror needs**
 
-jsdom doesn't implement layout APIs that CodeMirror calls when it measures. Append to `frontend/src/test/setup.ts`:
+jsdom doesn't implement layout APIs that CodeMirror calls when it measures. Append to `web/src/test/setup.ts`:
 ```ts
 // CodeMirror measures text with Range rects, which jsdom does not implement.
 const emptyRect = {
@@ -1066,7 +1066,7 @@ if (!Range.prototype.getClientRects) {
 
 - [ ] **Step 3: Write the failing test**
 
-`frontend/src/features/editor/MarkdownEditor.test.tsx`:
+`web/src/features/editor/MarkdownEditor.test.tsx`:
 ```tsx
 import { EditorState } from '@codemirror/state'
 import { EditorView } from '@codemirror/view'
@@ -1157,12 +1157,12 @@ describe('MarkdownEditor', () => {
 
 - [ ] **Step 4: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/editor`
+Run: `pnpm --dir web exec vitest run src/features/editor`
 Expected: FAIL with `Failed to resolve import "./MarkdownEditor"`.
 
 - [ ] **Step 5: Write the minimal implementation**
 
-`frontend/src/features/editor/MarkdownEditor.tsx`:
+`web/src/features/editor/MarkdownEditor.tsx`:
 ```tsx
 import { markdown } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
@@ -1283,13 +1283,13 @@ export function MarkdownEditor({
 
 - [ ] **Step 6: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/editor`
+Run: `pnpm --dir web exec vitest run src/features/editor`
 Expected: PASS (8 tests).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/src/test/setup.ts frontend/src/features/editor
+git add web/package.json web/pnpm-lock.yaml web/src/test/setup.ts web/src/features/editor
 git commit -m "feat(frontend): add CodeMirror 6 markdown editor wrapper"
 ```
 
@@ -1298,9 +1298,9 @@ git commit -m "feat(frontend): add CodeMirror 6 markdown editor wrapper"
 ### Task 7: MarkdownPreview
 
 **Files:**
-- Create: `frontend/src/features/preview/MarkdownPreview.tsx`
-- Modify: `frontend/package.json` (dependencies, via pnpm)
-- Test: `frontend/src/features/preview/MarkdownPreview.test.tsx`
+- Create: `web/src/features/preview/MarkdownPreview.tsx`
+- Modify: `web/package.json` (dependencies, via pnpm)
+- Test: `web/src/features/preview/MarkdownPreview.test.tsx`
 
 **Interfaces:**
 - Consumes: nothing from earlier tasks.
@@ -1308,12 +1308,12 @@ git commit -m "feat(frontend): add CodeMirror 6 markdown editor wrapper"
 
 - [ ] **Step 1: Install the Markdown packages**
 
-Run: `pnpm --dir frontend add react-markdown remark-gfm`
+Run: `pnpm --dir web add react-markdown remark-gfm`
 Expected: both packages appear in `dependencies`.
 
 - [ ] **Step 2: Write the failing test**
 
-`frontend/src/features/preview/MarkdownPreview.test.tsx`:
+`web/src/features/preview/MarkdownPreview.test.tsx`:
 ```tsx
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
@@ -1350,12 +1350,12 @@ describe('MarkdownPreview', () => {
 
 - [ ] **Step 3: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/features/preview`
+Run: `pnpm --dir web exec vitest run src/features/preview`
 Expected: FAIL with `Failed to resolve import "./MarkdownPreview"`.
 
 - [ ] **Step 4: Write the minimal implementation**
 
-`frontend/src/features/preview/MarkdownPreview.tsx`:
+`web/src/features/preview/MarkdownPreview.tsx`:
 ```tsx
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -1390,13 +1390,13 @@ If ESLint flags `_node` as unused, rename it to `node` and add `void node` at th
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/features/preview`
+Run: `pnpm --dir web exec vitest run src/features/preview`
 Expected: PASS (4 tests).
 
 - [ ] **Step 6: Commit**
 
 ```bash
-git add frontend/package.json frontend/pnpm-lock.yaml frontend/src/features/preview
+git add web/package.json web/pnpm-lock.yaml web/src/features/preview
 git commit -m "feat(frontend): add markdown preview with GFM support"
 ```
 
@@ -1405,8 +1405,8 @@ git commit -m "feat(frontend): add markdown preview with GFM support"
 ### Task 8: Tabs and AppHeader
 
 **Files:**
-- Create: `frontend/src/features/layout/Tabs.tsx`, `frontend/src/features/layout/AppHeader.tsx`
-- Test: `frontend/src/features/layout/Tabs.test.tsx`, `frontend/src/features/layout/AppHeader.test.tsx`
+- Create: `web/src/features/layout/Tabs.tsx`, `web/src/features/layout/AppHeader.tsx`
+- Test: `web/src/features/layout/Tabs.test.tsx`, `web/src/features/layout/AppHeader.test.tsx`
 
 **Interfaces:**
 - Consumes: `ThemeToggle` (Task 2), `ExportButton` (Task 5).
@@ -1417,7 +1417,7 @@ git commit -m "feat(frontend): add markdown preview with GFM support"
 
 - [ ] **Step 1: Write the failing tests**
 
-`frontend/src/features/layout/Tabs.test.tsx`:
+`web/src/features/layout/Tabs.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -1495,7 +1495,7 @@ describe('Tabs', () => {
 })
 ```
 
-`frontend/src/features/layout/AppHeader.test.tsx`:
+`web/src/features/layout/AppHeader.test.tsx`:
 ```tsx
 import { render, screen } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
@@ -1525,12 +1525,12 @@ describe('AppHeader', () => {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `pnpm --dir frontend exec vitest run src/features/layout`
+Run: `pnpm --dir web exec vitest run src/features/layout`
 Expected: FAIL with `Failed to resolve import "./Tabs"` / `"./AppHeader"`.
 
 - [ ] **Step 3: Write the minimal implementation**
 
-`frontend/src/features/layout/Tabs.tsx`:
+`web/src/features/layout/Tabs.tsx`:
 ```tsx
 import { useRef, type KeyboardEvent, type ReactNode } from 'react'
 
@@ -1624,7 +1624,7 @@ export function Tabs({ active, onChange, panels, badges }: TabsProps) {
 
 Note: `hidden` must win over `flex-1`. Tailwind v4 preflight sets `[hidden]:where(:not([hidden='until-found'])) { display: none !important }`, so hidden panels stay hidden.
 
-`frontend/src/features/layout/AppHeader.tsx`:
+`web/src/features/layout/AppHeader.tsx`:
 ```tsx
 import type { ReactNode } from 'react'
 import { ExportButton } from '../document/ExportButton'
@@ -1646,13 +1646,13 @@ export function AppHeader({ children }: { children?: ReactNode }) {
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `pnpm --dir frontend exec vitest run src/features/layout`
+Run: `pnpm --dir web exec vitest run src/features/layout`
 Expected: PASS (6 tests).
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add frontend/src/features/layout
+git add web/src/features/layout
 git commit -m "feat(frontend): add accessible tabs and app header"
 ```
 
@@ -1661,9 +1661,9 @@ git commit -m "feat(frontend): add accessible tabs and app header"
 ### Task 9: Wire the App shell and verify end to end
 
 **Files:**
-- Modify: `frontend/src/App.tsx` (replace its content)
-- Modify: `frontend/src/main.tsx` (replace its content)
-- Test: `frontend/src/App.test.tsx` (replace any phase 1 smoke test)
+- Modify: `web/src/App.tsx` (replace its content)
+- Modify: `web/src/main.tsx` (replace its content)
+- Test: `web/src/App.test.tsx` (replace any phase 1 smoke test)
 
 **Interfaces:**
 - Consumes: `ThemeProvider`, `useTheme` (Task 2); `DocumentProvider`, `useDocument` (Task 4); `MarkdownEditor` (Task 6); `MarkdownPreview` (Task 7); `Tabs`, `TabId`, `AppHeader` (Task 8).
@@ -1671,7 +1671,7 @@ git commit -m "feat(frontend): add accessible tabs and app header"
 
 - [ ] **Step 1: Write the failing test**
 
-`frontend/src/App.test.tsx`:
+`web/src/App.test.tsx`:
 ```tsx
 import { EditorView } from '@codemirror/view'
 import { act, render, screen, waitFor } from '@testing-library/react'
@@ -1738,12 +1738,12 @@ describe('App', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --dir frontend exec vitest run src/App.test.tsx`
+Run: `pnpm --dir web exec vitest run src/App.test.tsx`
 Expected: FAIL. The phase 1 `App` has no tabs, so `Unable to find role="banner"` (or `tab`) is reported.
 
 - [ ] **Step 3: Write the implementation**
 
-`frontend/src/App.tsx`:
+`web/src/App.tsx`:
 ```tsx
 import { useState } from 'react'
 import { DocumentProvider, useDocument } from './features/document/DocumentProvider'
@@ -1798,7 +1798,7 @@ export default function App() {
 }
 ```
 
-`frontend/src/main.tsx`:
+`web/src/main.tsx`:
 ```tsx
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -1817,20 +1817,20 @@ createRoot(root).render(
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --dir frontend exec vitest run src/App.test.tsx`
+Run: `pnpm --dir web exec vitest run src/App.test.tsx`
 Expected: PASS (4 tests).
 
 - [ ] **Step 5: Run the full frontend checks**
 
 Run:
 ```bash
-pnpm --dir frontend lint && pnpm --dir frontend typecheck && pnpm --dir frontend test && pnpm --dir frontend build
+pnpm --dir web lint && pnpm --dir web typecheck && pnpm --dir web test && pnpm --dir web build
 ```
 Expected: lint reports 0 problems, typecheck exits 0, all test files pass, and the Vite build finishes with `✓ built in …`. Fix any lint findings in the files from this phase before continuing.
 
 - [ ] **Step 6: Manual smoke test**
 
-Run: `pnpm --dir frontend dev`, then open http://localhost:5173 and check:
+Run: `pnpm --dir web dev`, then open http://localhost:5173 and check:
 1. The welcome document appears in the Editor tab with Markdown syntax highlighting, and long lines wrap.
 2. Typing, then switching to Preview, shows the rendered result, including the table and the checkbox list.
 3. Switching back to Editor keeps the cursor position and undo history (Ctrl/⌘+Z works).
@@ -1843,7 +1843,7 @@ Stop the dev server.
 - [ ] **Step 7: Commit**
 
 ```bash
-git add frontend/src/App.tsx frontend/src/App.test.tsx frontend/src/main.tsx
+git add web/src/App.tsx web/src/App.test.tsx web/src/main.tsx
 git commit -m "feat(frontend): wire editor, preview and AI review tabs into the app shell"
 ```
 
