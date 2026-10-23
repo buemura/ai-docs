@@ -86,8 +86,28 @@ describe('slashCompletionSource', () => {
     const option = result.options.find((o) => o.label === '/ask')!
     ;(option.apply as ApplyFn)(view, option, result.from, doc.length)
 
-    expect(view.state.doc.toString()).toBe('Hello ')
-    expect(onSelect).toHaveBeenCalledWith({ kind: 'ask', content: 'Hello ', cursor: 6 })
+    expect(view.state.doc.toString()).toBe('Hello')
+    expect(onSelect).toHaveBeenCalledWith({ kind: 'ask', content: 'Hello', cursor: 5 })
+  })
+
+  it('also removes the space typed before the slash so the target has no stray whitespace', () => {
+    const onSelect = vi.fn()
+    const doc = 'First para. /fix\n\nNext.'
+    const end = 'First para. /fix'.length
+    view = new EditorView({
+      state: EditorState.create({ doc, selection: { anchor: end } }),
+      parent: document.body,
+    })
+    const result = slashCompletionSource(onSelect)(
+      new CompletionContext(view.state, end, false),
+    ) as CompletionResult
+    const option = result.options.find((o) => o.label === '/fix')!
+    ;(option.apply as ApplyFn)(view, option, result.from, end)
+
+    expect(view.state.doc.toString()).toBe('First para.\n\nNext.')
+    expect(onSelect).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'preset', content: 'First para.\n\nNext.', cursor: 11 }),
+    )
   })
 })
 

@@ -17,12 +17,16 @@ const SLASH_BEFORE_CURSOR = /(?:^|\s)\/[\w-]*$/
 const SLASH_WORD = /^\/[\w-]*$/
 
 function removeSlashText(view: EditorView, from: number, to: number) {
+  // Also drop the space typed before the slash, so the targeted text has no stray whitespace.
+  const lineStart = view.state.doc.lineAt(from).from
+  const charBefore = from > lineStart ? view.state.sliceDoc(from - 1, from) : ''
+  const start = charBefore === ' ' || charBefore === '\t' ? from - 1 : from
   view.dispatch({
-    changes: { from, to, insert: '' },
-    selection: { anchor: from },
+    changes: { from: start, to, insert: '' },
+    selection: { anchor: start },
     userEvent: 'delete.slash',
   })
-  return { content: view.state.doc.toString(), cursor: from }
+  return { content: view.state.doc.toString(), cursor: start }
 }
 
 export function slashCompletionSource(
