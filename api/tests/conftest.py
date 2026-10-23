@@ -4,7 +4,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.config import Settings, get_settings
+from app.llm.factory import get_provider
 from app.main import create_app
+from tests.fakes import FakeProvider
 
 
 @pytest.fixture(autouse=True)
@@ -24,3 +26,22 @@ def settings(monkeypatch: pytest.MonkeyPatch) -> Settings:
 def client(settings: Settings) -> Iterator[TestClient]:
     with TestClient(create_app(settings)) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def fake_provider() -> FakeProvider:
+    return FakeProvider()
+
+
+@pytest.fixture
+def test_settings() -> Settings:
+    return Settings(_env_file=None)
+
+
+@pytest.fixture
+def api_client(fake_provider: FakeProvider, test_settings: Settings) -> Iterator[TestClient]:
+    app = create_app(test_settings)
+    app.dependency_overrides[get_provider] = lambda: fake_provider
+    app.dependency_overrides[get_settings] = lambda: test_settings
+    with TestClient(app) as client:
+        yield client
