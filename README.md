@@ -110,3 +110,13 @@ web/ (React 19 + Vite)                       api/ (FastAPI)
 ```
 
 The model returns only the replacement text for the target; the browser computes the diff, so every change is reviewed before it touches the document. Specs and implementation plans live in [`docs/specs/`](docs/specs/00-overview.md).
+
+## What I'd do differently with more time
+
+- **Real persistence.** Documents and version history currently live in `localStorage`, so they are tied to one browser. I'd store them in Postgres as the source of truth and put Redis in front of it as a cache for hot documents and recent versions.
+- **Authentication and protected endpoints.** Add user accounts and require an authenticated session for every `/api` endpoint, so documents belong to a user and the LLM endpoints can't be called anonymously.
+- **Rate limiting.** Limit requests per user and per IP on `POST /api/suggestions` to protect the API and the LLM budget from abuse.
+- **Per-user token limits.** Track input and output token usage per user (the provider reports it on each response) and enforce a daily or monthly quota.
+- **LLM provider fallback.** The `LLMProvider` strategy already supports Anthropic and OpenRouter. I'd add a fallback chain so that if the primary provider errors or times out before streaming starts, the request retries on the next provider.
+- **Docker containers.** Add Dockerfiles for `web/` and `api/` and a `docker-compose.yml` (with Postgres and Redis) so the whole stack runs with one command and deploys the same way everywhere.
+- **CI/CD.** Run lint, typecheck, and tests for both apps on every pull request (today this only happens in local git hooks), and build and deploy the containers automatically on merge to `main`.
