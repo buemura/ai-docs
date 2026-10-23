@@ -22,25 +22,32 @@ every change. Every accepted AI change is recorded in a version history.
 - Python 3.13 and [uv](https://docs.astral.sh/uv/)
 - An Anthropic API key or an OpenRouter API key
 
-## Setup
+## Quick start
 
 ```bash
-pnpm install                                 # root: installs the Husky git hooks
-pnpm --dir web install
-cd api && uv sync && cp .env.example .env    # then set your API key in .env
+./start.sh                  # installs all dependencies, creates api/.env, starts both apps
+./start.sh --skip-install   # later runs: just start both apps
 ```
 
-## Running
+The script checks the prerequisites, installs the root, web, and API dependencies, creates `api/.env` from `.env.example` if it is missing, then starts the API on http://localhost:8000 and, once it is healthy, the web app on http://localhost:5173. Ctrl-C stops both. Set your API key in `api/.env`.
+
+Without an API key the app still works as an editor; AI requests return a clear "API key must be set" error.
+
+## Manual setup
+
+```bash
+pnpm install                       # root: installs the Husky git hooks
+pnpm --dir web install
+make -C api install env            # uv sync, then copy .env.example to .env
+```
 
 ```bash
 # Terminal 1: API on http://localhost:8000
-cd api && uv run fastapi dev app/main.py
+make -C api dev
 
 # Terminal 2: web app on http://localhost:5173 (proxies /api to the API)
 pnpm --dir web dev
 ```
-
-Without an API key the app still works as an editor; AI requests return a clear "API key must be set" error.
 
 ## Configuration
 
@@ -64,15 +71,20 @@ Frontend (`web/.env`, optional):
 
 ## Scripts
 
-| Command                                                         | What it does                  |
-| --------------------------------------------------------------- | ----------------------------- |
-| `pnpm --dir web dev`                                            | Vite dev server               |
-| `pnpm --dir web build`                                          | Production build              |
-| `pnpm --dir web test`                                           | Frontend tests (Vitest)       |
-| `pnpm --dir web lint`                                           | ESLint                        |
-| `pnpm --dir web typecheck`                                      | TypeScript                    |
-| `cd api && uv run pytest`                                       | Backend tests                 |
-| `cd api && uv run ruff check . && uv run ruff format --check .` | Backend lint and format check |
+| Command                    | What it does                                   |
+| -------------------------- | ---------------------------------------------- |
+| `./start.sh`               | Install everything and run both apps           |
+| `pnpm --dir web dev`       | Vite dev server                                |
+| `pnpm --dir web build`     | Production build                               |
+| `pnpm --dir web test`      | Frontend tests (Vitest)                        |
+| `pnpm --dir web lint`      | ESLint                                         |
+| `pnpm --dir web typecheck` | TypeScript                                     |
+| `make -C api dev`          | API with auto-reload (`PORT=…` to change port) |
+| `make -C api test`         | Backend tests (`ARGS="-k name"` to filter)     |
+| `make -C api lint`         | Ruff lint                                      |
+| `make -C api format`       | Ruff autofix and format                        |
+| `make -C api check`        | Backend lint, format check, and tests          |
+| `make -C api help`         | List all API targets                           |
 
 Git hooks: pre-commit runs lint-staged (ESLint + Prettier) and ruff; pre-push runs the frontend typecheck and tests, and the backend tests.
 
