@@ -4,7 +4,7 @@ from collections.abc import Callable
 import httpx
 import pytest
 
-from app.llm.openrouter_provider import OPENROUTER_URL, OpenRouterProvider
+from app.llm.providers.openrouter_provider import OPENROUTER_URL, OpenRouterProvider
 from app.llm.types import (
     ChatMessage,
     CompletionRequest,

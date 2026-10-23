@@ -5,7 +5,7 @@ import anthropic
 import httpx
 import pytest
 
-from app.llm.anthropic_provider import SERVER_FALLBACK_BETA, AnthropicProvider
+from app.llm.providers.anthropic_provider import SERVER_FALLBACK_BETA, AnthropicProvider
 from app.llm.types import (
     ChatMessage,
     CompletionRequest,

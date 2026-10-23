@@ -1,9 +1,9 @@
 from functools import lru_cache
 
 from app.config import Settings, get_settings
-from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.base import LLMProvider
-from app.llm.openrouter_provider import OpenRouterProvider
+from app.llm.providers.anthropic_provider import AnthropicProvider
+from app.llm.providers.openrouter_provider import OpenRouterProvider
 
 
 class ProviderConfigError(RuntimeError):

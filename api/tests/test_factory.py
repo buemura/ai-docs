@@ -3,9 +3,9 @@ from collections.abc import Iterator
 import pytest
 
 from app.config import Settings, get_settings
-from app.llm.anthropic_provider import AnthropicProvider
 from app.llm.factory import ProviderConfigError, build_provider, get_provider
-from app.llm.openrouter_provider import OpenRouterProvider
+from app.llm.providers.anthropic_provider import AnthropicProvider
+from app.llm.providers.openrouter_provider import OpenRouterProvider
 
 
 @pytest.fixture
