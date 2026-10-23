@@ -23,7 +23,7 @@ describe('App', () => {
     expect(screen.getByRole('tab', { name: 'Editor' })).toHaveAttribute('aria-selected', 'true')
     expect(screen.getByRole('tab', { name: 'Preview' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'AI Review' })).toBeInTheDocument()
-    expect(screen.getByLabelText('Markdown editor')).toHaveTextContent('Welcome to AI Docs')
+    expect(screen.getByLabelText('Markdown editor')).toHaveTextContent('System design')
   })
 
   it('renders edits from the editor in the preview and autosaves them', async () => {
